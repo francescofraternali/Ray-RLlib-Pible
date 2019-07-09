@@ -1,0 +1,11 @@
+{
+  "env": "<class '__main__.SimpleCorridor'>",
+  "env_config": {
+    "corridor_length": 5
+  },
+  "lr": 0.0001,
+  "model": {
+    "custom_model": "my_model"
+  },
+  "num_workers": 1
+}
