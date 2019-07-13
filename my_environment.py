@@ -18,31 +18,7 @@ from gym.spaces import Discrete, Box
 import ray
 from ray import tune
 from ray.tune import grid_search
-
-
-class SimpleCorridor(gym.Env):
-    """Example of a custom env in which you have to walk down a corridor.
-    You can configure the length of the corridor via the env config."""
-
-    def __init__(self, config):
-        self.end_pos = config["corridor_length"]
-        self.cur_pos = 0
-        self.action_space = Discrete(2)
-        self.observation_space = Box(
-            0.0, self.end_pos, shape=(1, ), dtype=np.float32)
-
-    def reset(self):
-        self.cur_pos = 0
-        return [self.cur_pos]
-
-    def step(self, action):
-        assert action in [0, 1], action
-        if action == 0 and self.cur_pos > 0:
-            self.cur_pos -= 1
-        elif action == 1:
-            self.cur_pos += 1
-        done = self.cur_pos >= self.end_pos
-        return [self.cur_pos], 1 if done else 0, done, {}
+from ray.tune.registry import register_env
 
 
 class CustomModel(Model):
@@ -60,16 +36,20 @@ class CustomModel(Model):
 
 if __name__ == "__main__":
     # Can also register the env creator function explicitly with:
-    # register_env("corridor", lambda config: SimpleCorridor(config))
+    
+    from gym_envs.envs.Pible_env import pible_env_creator
+    
+    register_env("Pible-v2", pible_env_creator)
     ray.init()
     #ModelCatalog.register_custom_model("my_model", CustomModel)
     tune.run(
         "PPO",
         stop={
-            "timesteps_total": 10000,
+            "timesteps_total": 27000,
         },
+	checkpoint_freq=5,
         config={
-            "env": SimpleCorridor,  # or "corridor" if registered above
+            "env": "Pible-v2",  # or "corridor" if registered above
             #"model": {
             #    "custom_model": "my_model",
             #},
