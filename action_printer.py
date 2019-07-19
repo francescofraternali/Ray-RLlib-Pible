@@ -38,7 +38,7 @@ rewards_list = []
 #for iteration in iterations:
 iteration = 5
 if True:
-    path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/PPO/PPO_Pible-v2_0_lr=0.01_2019-07-12_16-50-270hpft7qo/' +
+    path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/PPO/PPO_Pible-v2_0_lr=0.01_2019-07-18_17-32-05wunggtds/' +
     #path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/DDPG/DDPG_VAV-v0_0_2019-05-10_20-02-38zocesjrb' +
                      '/checkpoint_' + str(iteration) + '/checkpoint-' + str(iteration),
                      recursive=True)
@@ -52,23 +52,29 @@ if True:
     agent.restore(path[0])
     learned_actions = []
     rewards = []
-    #for i, t in enumerate(time_range[:-1]):
-    #   obs, action = observations.iloc[i], actions.iloc[i:i+1].to_list()
-    if True:
+    for i in range(1,10):
+        #   obs, action = observations.iloc[i], actions.iloc[i:i+1].to_list()
+        #if True:
         # Note: I change the reward calculation into this way
         #reward = get_reward(consumptions.iloc[i + 1], observations.iloc[i + 1], action)
         reward = 0
+        if i == 3:
+            test = 1
+        else:
+            test = 0
         learned_action = agent.compute_action( 
-            observation=[0,0,0,0],
+            #observation=[0],
+	    observation=[test],
             prev_action=1,
             prev_reward=1
         )
         pre_reward = reward
         pre_action = 0
         print("action learned", learned_action)
-        quit()
-        learned_actions.append(learned_action[0])
-        rewards.append(reward)
+        
+        #learned_actions.append(learned_action[0])
+        #rewards.append(reward)
+    quit()
     curr_min = np.min(learned_actions)
     curr_max = np.max(learned_actions)
     print('===================')

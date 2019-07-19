@@ -20,7 +20,7 @@ from ray import tune
 from ray.tune import grid_search
 from ray.tune.registry import register_env
 
-
+'''
 class CustomModel(Model):
     """Example of a custom model.
     This model just delegates to the built-in fcnet.
@@ -32,7 +32,7 @@ class CustomModel(Model):
                                            self.action_space, num_outputs,
                                            options)
         return self.fcnet.outputs, self.fcnet.last_layer
-
+'''
 
 if __name__ == "__main__":
     # Can also register the env creator function explicitly with:
