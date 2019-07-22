@@ -1,5 +1,4 @@
 """
-From Classic cart-pole system implemented by Rich Sutton et al.
 Copied from http://incompleteideas.net/sutton/book/code/pole.c
 permalink: https://perma.cc/C9ZM-652R
 """
@@ -9,38 +8,64 @@ import gym
 from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
+from time import sleep
+import datetime
+import subprocess
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import os
+
+
+# Light_Path
+path = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
+
+# using PIR = 1 if you want to include the PIR in the simulation
+state_trans = 900 # time in seconds
+using_PIR = 0
+PIR_events = 200 # Number of PIR events detected during a day. This could happen also when light is not on
+
+I_PIR_detect = 0.000102; PIR_detect_time = 2.5
+
+# Super-Capacitor values
+SC_volt_min = 2.3; SC_volt_max = 5.4; SC_size = 1.5; SC_begin = 4.0
+SC_volt_die = 3.0
+# Solar Panel values
+V_solar_200lux = 1.5; I_solar_200lux = 0.000031;
+
+# Communication values
+I_Wake_up_Advertise = 0.00006; Time_Wake_up_Advertise = 11
+I_BLE_Comm = 0.00025; Time_BLE_Comm = 4
+I_BLE_Sens_1= ((I_Wake_up_Advertise * Time_Wake_up_Advertise) + (I_BLE_Comm * Time_BLE_Comm))/(Time_Wake_up_Advertise + Time_BLE_Comm)
+Time_BLE_Sens_1 = Time_Wake_up_Advertise + Time_BLE_Comm
+
+if using_PIR == 1:
+	I_sleep = 0.0000055
+else:
+	I_sleep = 0.0000032
 
 class PibleEnv(gym.Env):
     """
     Description:
-        A pole is attached by an un-actuated joint to a cart, which moves along a frictionless track. The pendulum starts upright, and the goal is to prevent it from falling over by increasing and reducing the cart's velocity.
-    Source:
-        This environment corresponds to the version of the cart-pole problem described by Barto, Sutton, and Anderson
+	A representation o the Pible-mote as a gym environment to test RL algorithms
     Observation: 
         Type: Box(4)
-        Num	Observation                 Min         Max
-        0	Cart Position             -4.8            4.8
-        1	Cart Velocity             -Inf            Inf
-        2	Pole Angle                 -24 deg        24 deg
-        3	Pole Velocity At Tip      -Inf            Inf
+        Num	Observation                 		Min     	Max
+        0	Super-Capacitor Voltage level		2.3		5.4
+	#0	Cart Position             		-4.8            4.8
+        #1	Cart Velocity             		-Inf            Inf
         
     Actions:
         Type: Discrete(2)
         Num	Action
-        0	Push cart to the left
-        1	Push cart to the right
+        0	15 min sensing-rate
+	1	15 sec sensing-rate
         
-        Note: The amount the velocity that is reduced or increased is not fixed; it depends on the angle the pole is pointing. This is because the center of gravity of the pole increases the amount of energy needed to move the cart underneath it
     Reward:
-        Reward is 1 for every step taken, including the termination step
+        Reward equal to action if node alive (i.e. super capcitor voltage level > 2.3) else very negative (i.e. -300)
     Starting State:
-        All observations are assigned a uniform random value in [-0.05..0.05]
+        The super-capacitor voltage level is 4 volts
     Episode Termination:
-        Pole Angle is more than 12 degrees
-        Cart Position is more than 2.4 (center of the cart reaches the edge of the display)
-        Episode length is greater than 200
-        Solved Requirements
-        Considered solved when the average reward is greater than or equal to 195.0 over 100 consecutive trials.
+        Episode terminates after 24 hours of simulation
     """
     
     #metadata = {
@@ -49,167 +74,210 @@ class PibleEnv(gym.Env):
     #}
 
     def __init__(self, config):
-        #self.gravity = 9.8
-        #self.masscart = 1.0
-        #self.masspole = 0.1
-        #self.total_mass = (self.masspole + self.masscart)
-        #self.length = 0.5 # actually half the pole's length
-        #self.polemass_length = (self.masspole * self.length)
-        #self.force_mag = 10.0
-        #self.tau = 0.02  # seconds between state updates
-        #self.kinematics_integrator = 'euler'
-
-        ## Angle at which to fail the episode
-        #self.theta_threshold_radians = 12 * 2 * math.pi / 360
-        #self.x_threshold = 2.4
-        self.sc_volt = 4
-        self.state = 0.0
         self.count = 0
         self.light_count = 0
-        with open("/home/francesco/Desktop/Ray-RLlib-Pible/gym_envs/envs/Light_sample.txt", 'r') as f:
-            content = f.readlines()
-        print(content[0])
-        quit()
-        light = content[self.light_count]
+        self.done = 0
 
-        # Angle limit set to 2 * theta_threshold_radians so failing observation is still within bounds
-        high = np.array([self.state])
+        with open(path + "/Light_sample.txt", 'r') as f:
+            content = f.readlines()
+        self.light_input = [x.strip() for x in content]
+
+        # Building the observation
+        high = np.array([SC_begin])
             #self.state,
             #np.finfo(np.float32).max,
             #self.theta_threshold_radians * 2,
             #np.finfo(np.float32).max
 	#])
-        #print(-high, high)
-        self.action_space = spaces.Discrete(2)
-        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
-        #self.observation_space = spaces.Box(-1.0, 1.0, dtype=np.float32)
-        #self.seed()
-        #self.viewer = None
-        #self.state = None
+        min_sc = np.array([SC_volt_min])
+        max_sc = np.array([SC_volt_max])
+        min_act = np.array([15]) # seconds
+        max_act = np.array([900]) # seconds
 
-        #self.steps_beyond_done = None
-
-    #def seed(self, seed=None):
-    #    self.np_random, seed = seeding.np_random(seed)
-    #    return [seed]
+        self.action_space = spaces.Discrete(4)
+        #self.action_space = spaces.Box(min_act, max_act, dtype=np.float32)
+        self.observation_space = spaces.Box(min_sc, max_sc, dtype=np.float32)
 
     def step(self, action):
+
         assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
-        #state = self.state
-        #x, x_dot, theta, theta_dot = state
-        #force = self.force_mag if action==1 else -self.force_mag
-        #costheta = math.cos(theta)
-        #sintheta = math.sin(theta)
-        #temp = (force + self.polemass_length * theta_dot * theta_dot * sintheta) / self.total_mass
-        #thetaacc = (self.gravity * sintheta - costheta* temp) / (self.length * (4.0/3.0 - self.masspole * costheta * costheta / self.total_mass))
-        #xacc  = temp - self.polemass_length * thetaacc * costheta / self.total_mass
-        #if self.kinematics_integrator == 'euler':
-        #    x  = x + self.tau * x_dot
-        #    x_dot = x_dot + self.tau * xacc
-        #    theta = theta + self.tau * theta_dot
-        #    theta_dot = theta_dot + self.tau * thetaacc
-        #else: # semi-implicit euler
-        #    x_dot = x_dot + self.tau * xacc
-        #    x  = x + self.tau * x_dot
-        #    theta_dot = theta_dot + self.tau * thetaacc
-        #    theta = theta + self.tau * theta_dot
-        #self.state = (x,x_dot,theta,theta_dot)
-        #done =  x < -self.x_threshold \
-        #        or x > self.x_threshold \
-        #        or theta < -self.theta_threshold_radians \
-        #        or theta > self.theta_threshold_radians
-        #done = bool(done)
+        #action += self.min_act 
 
-        self.count += 1
-        self.state = 0.0
-        if self.count >= 10:
-            done = True
-        else:
-            done = False
+	# Reading next light value
+        line = self.light_input[self.light_count]
+        self.light_count += 1
+        line = line.split('|')
+        self.time = self.time + datetime.timedelta(0, state_trans)
+        self.PIR = int(line[7])
+        light_pure = int(line[8])
 
-        if action == 0:
-            reward = 1
-        else:
-            reward = 0
-        #if not done:
-        #    reward = 1.0
-        #elif self.steps_beyond_done is None:
-        #    # Pole just fell!
-        #    self.steps_beyond_done = 0
-        #    reward = 1.0
-        #else:
-        #    if self.steps_beyond_done == 0:
-        #        logger.warn("You are calling 'step()' even though this environment has already returned done = True. You should always call 'reset()' once you receive 'done = True' -- any further steps are undefined behavior.")
-        #    self.steps_beyond_done += 1
-        #    reward = 0.0
+        if self.time >= self.end_time:
+            self.done = 1
+        if self.light_count == len(self.light_input)-1:
+            self.light_count = 0
+            self.done = 1
 
-        return np.array([self.state]), reward, done, {}
-        #return [self.state], reward, done, {}
+        self.reward = reward_func(action, self.SC_volt)
+        self.SC_volt = energy_calc(self.SC_volt, light_pure, action, self.PIR)
+    
+        self.SC_Volt.append(self.SC_volt)
+        self.Reward.append(self.reward)
+        self.PIR_hist.append(self.PIR)
+        #self.Perf.append(self.perf)
+        self.Time.append(self.time)
+        self.Light.append(light_pure)
+        self.Action.append(action)
+    
+        return np.array([self.SC_volt]), self.reward, self.done, {}
 
     def reset(self):
-        #self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
-        #self.steps_beyond_done = None
-        self.state = 0.0
-        return np.array([self.state])
-        #return [self.state]
+        self.SC_Volt = []; self.SC_Norm = []; self.Reward = []; self.PIR_hist = []; self.Perf = []; self.Time = []; self.Light = []; self.Action = []; self.light_count == 0
+        
+        with open(path + "/Light_sample.txt", 'r') as f:
+            for line in f:
+                line = line.split('|')
+                self.time = datetime.datetime.strptime(line[self.light_count], '%m/%d/%y %H:%M:%S')
+                break
+
+        self.end_time = self.time + datetime.timedelta(0, 24*60*60)
+        self.done = 0
+        self.PIR = 0
+        self.SC_volt = SC_begin
+
+        return np.array([self.SC_volt])
+
+
+    def render(self, episode, tot_rew):
+        plot_hist(self.Time, self.Light, self.Action, self.Reward, self.Perf, self.SC_Volt, self.SC_Norm, self.PIR_hist, episode, tot_rew)
+
+
+def reward_func(action, SC_volt):
+
+    reward = action
+    #reward = int(state_trans/action)
+    
+    
+    if SC_volt <= SC_volt_die:
+        reward = -300
+    if action == 900.0 and SC_volt <= SC_volt_die:
+        reward = -100
     '''
-    def render(self, mode='human'):
-        screen_width = 600
-        screen_height = 400
-
-        world_width = self.x_threshold*2
-        scale = screen_width/world_width
-        carty = 100 # TOP OF CART
-        polewidth = 10.0
-        polelen = scale * (2 * self.length)
-        cartwidth = 50.0
-        cartheight = 30.0
-
-        if self.viewer is None:
-            from gym.envs.classic_control import rendering
-            self.viewer = rendering.Viewer(screen_width, screen_height)
-            l,r,t,b = -cartwidth/2, cartwidth/2, cartheight/2, -cartheight/2
-            axleoffset =cartheight/4.0
-            cart = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
-            self.carttrans = rendering.Transform()
-            cart.add_attr(self.carttrans)
-            self.viewer.add_geom(cart)
-            l,r,t,b = -polewidth/2,polewidth/2,polelen-polewidth/2,-polewidth/2
-            pole = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
-            pole.set_color(.8,.6,.4)
-            self.poletrans = rendering.Transform(translation=(0, axleoffset))
-            pole.add_attr(self.poletrans)
-            pole.add_attr(self.carttrans)
-            self.viewer.add_geom(pole)
-            self.axle = rendering.make_circle(polewidth/2)
-            self.axle.add_attr(self.poletrans)
-            self.axle.add_attr(self.carttrans)
-            self.axle.set_color(.5,.5,.8)
-            self.viewer.add_geom(self.axle)
-            self.track = rendering.Line((0,carty), (screen_width,carty))
-            self.track.set_color(0,0,0)
-            self.viewer.add_geom(self.track)
-
-            self._pole_geom = pole
-
-        if self.state is None: return None
-
-        # Edit the pole polygon vertex
-        pole = self._pole_geom
-        l,r,t,b = -polewidth/2,polewidth/2,polelen-polewidth/2,-polewidth/2
-        pole.v = [(l,b), (l,t), (r,t), (r,b)]
-
-        x = self.state
-        cartx = x[0]*scale+screen_width/2.0 # MIDDLE OF CART
-        self.carttrans.set_translation(cartx, carty)
-        self.poletrans.set_rotation(-x[2])
-
-        return self.viewer.render(return_rgb_array = mode=='rgb_array')
-
-    def close(self):
-        if self.viewer:
-            self.viewer.close()
-            self.viewer = None
+    if perf == 300.0:
+        reward = 1
+        print("trovato")
+    else:
+        reward = 0
     '''
+    return reward
+
+def energy_calc(SC_volt, light, action, PIR):
+
+    try: 
+        SC_volt = SC_volt[0]
+    except:
+        pass
+    
+    #effect = state_trans/action
+    if action == 3:
+        effect = 60
+    elif action == 2:
+        effect = 15
+    elif action == 1:
+        effect = 3
+    else:
+        effect = 1
+
+    Energy_Rem = SC_volt * SC_volt * 0.5 * SC_size
+
+    if SC_volt <= SC_volt_min: # Node is death and not consuming energy
+        #Energy_Prod = state_trans * V_solar_200lux * I_solar_200lux * (light/200)
+        Energy_Used = 0
+    else: # Node is alive
+        Energy_Used = ((state_trans - (Time_BLE_Sens_1 * effect)) * SC_volt * I_sleep) # Energy Consumed by the node in sleep mode 
+        Energy_Used += (Time_BLE_Sens_1 * effect * SC_volt * I_BLE_Sens_1) # energy consumed by the node to send data
+        #Energy_Used += (PIR * I_PIR_detect * PIR_detect_time) # energy consumed by the node for the PIR
+
+    Energy_Prod = state_trans * V_solar_200lux * I_solar_200lux * (light/200)
+
+    # Energy cannot be lower than 0
+    Energy_Rem = max(Energy_Rem - Energy_Used + Energy_Prod, 0)
+
+    SC_volt = np.sqrt((2*Energy_Rem)/SC_size)
+
+    # Setting Boundaries for Voltage
+    if SC_volt > SC_volt_max:
+        SC_volt = SC_volt_max
+
+    if SC_volt < SC_volt_min:
+        SC_volt = SC_volt_min
+
+    #SC_volt = np.round(SC_volt, 4)
+
+    try: 
+        SC_volt = SC_volt[0]
+    except:
+        pass
+    
+    return SC_volt
+
+def plot_hist(Time, Light, Action, Reward, Perf, SC_Volt, SC_Norm, PIR, episode, tot_rew):
+
+    #Start Plotting
+    plt.figure(1)
+    plt.subplot(411)
+    plt.title(('Simulation while sensing every {0} sec and PIR {1} with {2} events').format(state_trans, using_PIR, PIR_events))
+    plt.plot(Time, Light, 'b-', label = 'SC Percentage', markersize = 10)
+    plt.ylabel('Light [lux]', fontsize=15)
+    plt.legend(loc=9, prop={'size': 10})
+    plt.ylim(0)
+    plt.grid(True)
+    plt.subplot(412)
+    plt.plot(Time, PIR, 'k.', label = 'PIR detection', markersize = 15)
+    plt.ylabel('PIR [boolean]', fontsize=15)
+    plt.xlabel('Time [h]', fontsize=20)
+    plt.legend(loc=9, prop={'size': 10})
+    plt.ylim(-0.25, 1.25)
+    plt.grid(True)
+    plt.subplot(413)
+    plt.plot(Time, SC_Volt, 'r.', label = 'SC Voltage', markersize = 15)
+    plt.ylabel('Super Capacitor\nVoltage [V]', fontsize=15)
+    plt.legend(loc=9, prop={'size': 10})
+    plt.ylim(2.2,5.6)
+    plt.grid(True)
+    plt.subplot(414)
+    plt.plot(Time, Action, 'y.', label = 'Actions', markersize = 15)
+    plt.ylabel('Actions [num]', fontsize=15)
+    plt.xlabel('Time [h]', fontsize=20)
+    plt.legend(loc=9, prop={'size': 10})
+    plt.ylim(0)
+    plt.grid(True)
+    plt.show()
+
+    '''
+    #Start Plotting
+    fig, ax = plt.subplots(1)
+    fig.autofmt_xdate()
+    plt.plot(Time, Light, 'b', label = 'Light')
+    plt.plot(Time, Action, 'y*', label = 'Action',  markersize = 15)
+    plt.plot(Time, Reward, 'k+', label = 'Reward')
+    #plt.plot(Time, Perf, 'g', label = 'Performance')
+    plt.plot(Time, SC_Volt, 'r+', label = 'SC_Voltage')
+    #plt.plot(Time, SC_Norm, 'm^', label = 'SC_Voltage_Normalized')
+    plt.plot(Time, PIR, 'c^', label = 'Occupancy')
+    xfmt = mdates.DateFormatter('%m-%d-%y %H:%M:%S')
+    ax.xaxis.set_major_formatter(xfmt)
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    legend = ax.legend(loc='center right', shadow=True)
+    plt.legend(loc=9, prop={'size': 10})
+    plt.title('Epis: ' + str(episode) + ' tot_rew: ' + str(tot_rew), fontsize=15)
+    plt.ylabel('Super Capacitor Voltage[V]', fontsize=15)
+    plt.xlabel('Time[h]', fontsize=20)
+    ax.grid(True)
+    #fig.savefig('Saved_Data/Graph_hist_' + Text + '.png', bbox_inches='tight')
+    plt.show()
+    #plt.close(fig)
+    '''
+
 def pible_env_creator(env_config):
     return PibleEnv(env_config)
+
