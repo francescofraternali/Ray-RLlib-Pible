@@ -6,9 +6,11 @@ from ray.tune.registry import register_env
 from ray.rllib.agents import ppo
 from gym_envs.envs import Pible_env
 from time import sleep
+import os
 #import arrow
 
-path_data = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
+#path_data = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
+path_data = os.getcwd()
 
 #start_time = arrow.get(2018, 4, 1, tzinfo=PT)
 #end_time = arrow.get(2018, 4, 5, tzinfo=PT)
@@ -31,13 +33,10 @@ ray.init()
 
 # Detect folder for trainer to resume
 path = subprocess.getoutput('eval echo "~$USER"')
-
 proc = subprocess.Popen("ls " + path + "/ray_results/PPO/", stdout=subprocess.PIPE, shell=True)
 (out, err) = proc.communicate()
-
 out = out.decode()
 spl = out.strip().split('\n')
-
 for i in spl:
     folder = i.split('.')
     if "json" not in folder:
@@ -46,7 +45,6 @@ for i in spl:
 print("folder", folder)
 
 # detect checkpoint to resume
-#print("ls " + path + "/ray_results/PPO/" + folder + '/')
 proc = subprocess.Popen("ls " + path + "/ray_results/PPO/" + folder + '/', stdout=subprocess.PIPE, shell=True)
 (out, err) = proc.communicate()
 print(out)
@@ -61,7 +59,7 @@ for i in spl:
             max = int(tester[1])
             iteration = i
         
-print(iteration, max)
+print("Found folder: ", folder, "Last checkpoint found: ", iteration)
 sleep(3)
 
 if True:
@@ -70,38 +68,32 @@ if True:
                      '/checkpoint_' + str(max) + '/checkpoint-' + str(max),
                      recursive=True)
     assert len(path) == 1, path
-    #agent = ddpg.DDPGAgent(config={
-    #    'env_config': {
-    #        'max_airflow': 1,
-    #        'min_airflow': 0,
-    #    }, "input_evaluation": []}, env='VAV-v0')
-    agent = ppo.PPOAgent(config=None, env='Pible-v2')
+    agent = ppo.PPOAgent(config={
+        "env_config": {
+         "path": path_data,
+         },
+    }, env='Pible-v2')
     agent.restore(path[0])
-    learned_actions = []
-    rewards = []
-    config = {}
+    config = {
+                "path": path_data,
+            }
     Env = Pible_env.PibleEnv(config)
     SC_volt = Env.reset()
     
-    with open(path_data + "/Light_sample.txt", 'r') as f:
-        content = f.readlines()
-        
-    for i in range(1, len(content)):
+    while True:
         
         learned_action = agent.compute_action( 
-            #observation=[0],
 	    observation = [SC_volt[0]],
             prev_action = pre_action,
             prev_reward = pre_reward
         )
-
         #learned_action = 0
         SC_volt, reward, done, none = Env.step(learned_action)
         
         pre_reward = reward
         pre_action = learned_action
         print("action learned", learned_action, "reward", reward)
-        #learned_actions.append(learned_action[0])
-        #rewards.append(reward)
+        if done:
+            break
 
     Env.render(0, 0)

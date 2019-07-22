@@ -13,35 +13,43 @@ import datetime
 import subprocess
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
-import os
 
 
-# Light_Path
-path = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
-
-# using PIR = 1 if you want to include the PIR in the simulation
-state_trans = 900 # time in seconds
-using_PIR = 0
+# Parameters to change
+state_trans = 900 # State transition in seconds. I.e. the system changes action every "state_trans" seconds.
+SC_begin = 4.0 # Super Capacitor initial voltage level. Put a number between 5.4 (i.e. max) and 2.3 (i.e. min) 
+using_PIR = False # PIR active and used to detect people
+using_Accelerometer = False # Activate only if using Accelerometer
 PIR_events = 200 # Number of PIR events detected during a day. This could happen also when light is not on
 
-I_PIR_detect = 0.000102; PIR_detect_time = 2.5
+# DO NOT MODIFY!  POWER CONSUMPTION PARAMETERS! Change them only if you change components.
+SC_volt_min = 2.3; SC_volt_max = 5.5; SC_size = 1.5; SC_volt_die = 3.0
 
-# Super-Capacitor values
-SC_volt_min = 2.3; SC_volt_max = 5.4; SC_size = 1.5; SC_begin = 4.0
-SC_volt_die = 3.0
-# Solar Panel values
-V_solar_200lux = 1.5; I_solar_200lux = 0.000031;
+# Board and Components Consumtion
+i_sleep = 0.0000032;
+i_PIR_detect = 0.000102; PIR_detect_time = 2.5
+i_accel_sens = 0.0026; accel_sens_time = 0.27
 
-# Communication values
-I_Wake_up_Advertise = 0.00006; Time_Wake_up_Advertise = 11
-I_BLE_Comm = 0.00025; Time_BLE_Comm = 4
-I_BLE_Sens_1= ((I_Wake_up_Advertise * Time_Wake_up_Advertise) + (I_BLE_Comm * Time_BLE_Comm))/(Time_Wake_up_Advertise + Time_BLE_Comm)
-Time_BLE_Sens_1 = Time_Wake_up_Advertise + Time_BLE_Comm
+if using_PIR == True:
+    i_sleep += 0.000001
 
-if using_PIR == 1:
-	I_sleep = 0.0000055
-else:
-	I_sleep = 0.0000032
+# if using_Accelerometer:
+#    i_sleep += 0.000008
+
+# Communication (wake up and transmission) and Sensing Consumption
+i_wake_up_advertise = 0.00006; time_wake_up_advertise = 11
+i_BLE_comm = 0.00025; time_BLE_comm = 4
+i_BLE_sens = ((i_wake_up_advertise * time_wake_up_advertise) + (i_BLE_comm * time_BLE_comm))/(time_wake_up_advertise + time_BLE_comm)
+time_BLE_sens = time_wake_up_advertise + time_BLE_comm
+
+#i_BLE_sens = 0.000210; time_BLE_sens = 6.5
+
+# Solar Panel Production
+v_solar_200_lux = 1.5; i_solar_200_lux = 0.000031
+p_solar_1_lux = (v_solar_200_lux * i_solar_200_lux) / 200.0
+
+# Light_Path
+#path = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
 
 class PibleEnv(gym.Env):
     """
@@ -74,11 +82,12 @@ class PibleEnv(gym.Env):
     #}
 
     def __init__(self, config):
+        self.path = config["path"]
         self.count = 0
         self.light_count = 0
         self.done = 0
-
-        with open(path + "/Light_sample.txt", 'r') as f:
+        
+        with open(self.path + "/Light_sample.txt", 'r') as f:
             content = f.readlines()
         self.light_input = [x.strip() for x in content]
 
@@ -123,7 +132,6 @@ class PibleEnv(gym.Env):
         self.SC_Volt.append(self.SC_volt)
         self.Reward.append(self.reward)
         self.PIR_hist.append(self.PIR)
-        #self.Perf.append(self.perf)
         self.Time.append(self.time)
         self.Light.append(light_pure)
         self.Action.append(action)
@@ -133,7 +141,7 @@ class PibleEnv(gym.Env):
     def reset(self):
         self.SC_Volt = []; self.SC_Norm = []; self.Reward = []; self.PIR_hist = []; self.Perf = []; self.Time = []; self.Light = []; self.Action = []; self.light_count == 0
         
-        with open(path + "/Light_sample.txt", 'r') as f:
+        with open(self.path + "/Light_sample.txt", 'r') as f:
             for line in f:
                 line = line.split('|')
                 self.time = datetime.datetime.strptime(line[self.light_count], '%m/%d/%y %H:%M:%S')
@@ -156,18 +164,11 @@ def reward_func(action, SC_volt):
     reward = action
     #reward = int(state_trans/action)
     
-    
     if SC_volt <= SC_volt_die:
         reward = -300
-    if action == 900.0 and SC_volt <= SC_volt_die:
-        reward = -100
-    '''
-    if perf == 300.0:
-        reward = 1
-        print("trovato")
-    else:
-        reward = 0
-    '''
+    #if action == 900.0 and SC_volt <= SC_volt_die:
+    #    reward = -100
+
     return reward
 
 def energy_calc(SC_volt, light, action, PIR):
@@ -193,11 +194,11 @@ def energy_calc(SC_volt, light, action, PIR):
         #Energy_Prod = state_trans * V_solar_200lux * I_solar_200lux * (light/200)
         Energy_Used = 0
     else: # Node is alive
-        Energy_Used = ((state_trans - (Time_BLE_Sens_1 * effect)) * SC_volt * I_sleep) # Energy Consumed by the node in sleep mode 
-        Energy_Used += (Time_BLE_Sens_1 * effect * SC_volt * I_BLE_Sens_1) # energy consumed by the node to send data
+        Energy_Used = ((state_trans - (time_BLE_sens * effect)) * SC_volt * i_sleep) # Energy Consumed by the node in sleep mode 
+        Energy_Used += (time_BLE_sens * effect * SC_volt * i_BLE_sens) # energy consumed by the node to send data
         #Energy_Used += (PIR * I_PIR_detect * PIR_detect_time) # energy consumed by the node for the PIR
 
-    Energy_Prod = state_trans * V_solar_200lux * I_solar_200lux * (light/200)
+    Energy_Prod = state_trans * p_solar_1_lux * light
 
     # Energy cannot be lower than 0
     Energy_Rem = max(Energy_Rem - Energy_Used + Energy_Prod, 0)

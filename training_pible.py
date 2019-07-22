@@ -16,6 +16,11 @@ from ray import tune
 from ray.tune import grid_search
 from ray.tune.registry import register_env
 import subprocess
+import os
+
+user = subprocess.getoutput('eval echo "~$USER"')
+#path_data = user + "/Desktop/Ray-RLlib-Pible/gym_envs/envs" 
+path_data = os.getcwd()
 
 if __name__ == "__main__":
     # Can also register the env creator function explicitly with:
@@ -23,23 +28,24 @@ if __name__ == "__main__":
     from gym_envs.envs.Pible_env import pible_env_creator
     
     # Delete previous training
-    if True:
-        subprocess.run("rm -r /home/francesco/ray_results/PPO/", shell=True)
+    if False:
+        subprocess.run("rm -r " + user + "/ray_results/PPO/", shell=True)
    
     register_env("Pible-v2", pible_env_creator)
     ray.init()
     tune.run(
         "PPO",
         stop={
-            "timesteps_total": 500000,
+            "timesteps_total": 200000,
         },
 	checkpoint_freq=10,
         config={
             "env": "Pible-v2",  # or "corridor" if registered above
-            "lr": grid_search([1e-2]),  # try different lrs
+            "lr": grid_search([1e-1]),  # try different lrs
             "num_workers": 4,  # parallelism
-            #"env_config": {
-            #    "corridor_length": 5,
-            #},
+            "env_config": {
+                "path": path_data,
+                #"corridor_length": 5,
+            },
         },
     )
