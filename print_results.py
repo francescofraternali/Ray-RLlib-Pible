@@ -7,6 +7,7 @@ from ray.rllib.agents import ppo
 from gym_envs.envs import Pible_env
 from time import sleep
 import os
+import datetime
 #import arrow
 
 #path_data = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
@@ -31,7 +32,8 @@ pre_reward = 0
 
 ray.init()
 
-# Detect folder for trainer to resume
+# Detect latest folder for trainer to resume
+latest = 0
 path = subprocess.getoutput('eval echo "~$USER"')
 proc = subprocess.Popen("ls " + path + "/ray_results/PPO/", stdout=subprocess.PIPE, shell=True)
 (out, err) = proc.communicate()
@@ -40,8 +42,16 @@ spl = out.strip().split('\n')
 for i in spl:
     folder = i.split('.')
     if "json" not in folder:
-        folder = i
-        break
+        d = i.split('_')
+        date = d[4].split('-')
+        hour = d[5].split('-')
+        x = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(hour[0]), int(hour[1]))
+        if latest == 0:
+            folder = i; time = x; latest = 1
+        else:
+            if x > time:
+                folder = i; time = x
+        
 print("folder", folder)
 
 # detect checkpoint to resume
