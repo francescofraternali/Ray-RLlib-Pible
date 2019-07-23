@@ -32,6 +32,8 @@ i_accel_sens = 0.0026; accel_sens_time = 0.27
 
 if using_PIR == True:
     i_sleep += 0.000001
+else:
+    PIR_events = 0
 
 # if using_Accelerometer:
 #    i_sleep += 0.000008
@@ -226,7 +228,7 @@ def plot_hist(Time, Light, Action, Reward, Perf, SC_Volt, SC_Norm, PIR, episode,
     #Start Plotting
     plt.figure(1)
     plt.subplot(411)
-    plt.title(('Simulation while sensing every {0} sec and PIR {1} with {2} events').format(state_trans, using_PIR, PIR_events))
+    plt.title(('Sensing every {0} sec, PIR {1} ({2} events). Tot reward: {3}').format(state_trans, using_PIR, PIR_events, tot_rew))
     plt.plot(Time, Light, 'b-', label = 'SC Percentage', markersize = 10)
     plt.ylabel('Light [lux]', fontsize=15)
     plt.legend(loc=9, prop={'size': 10})

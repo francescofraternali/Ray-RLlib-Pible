@@ -89,7 +89,7 @@ if True:
             }
     Env = Pible_env.PibleEnv(config)
     SC_volt = Env.reset()
-    
+    tot_rew = 0
     while True:
         
         learned_action = agent.compute_action( 
@@ -99,11 +99,11 @@ if True:
         )
         #learned_action = 0
         SC_volt, reward, done, none = Env.step(learned_action)
-        
+        tot_rew += reward
         pre_reward = reward
         pre_action = learned_action
         print("action learned", learned_action, "reward", reward)
         if done:
             break
 
-    Env.render(0, 0)
+    Env.render(1, tot_rew)
