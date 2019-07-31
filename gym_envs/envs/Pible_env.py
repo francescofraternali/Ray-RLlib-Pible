@@ -53,6 +53,12 @@ p_solar_1_lux = (v_solar_200_lux * i_solar_200_lux) / 200.0
 # Light_Path
 #path = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
 
+min_act = np.array([0.0]) # min action 
+max_act = np.array([3.0]) # max action 
+max_sens = 15.0 # minimum sensing rate in seconds
+min_sens = 900.0 # maximum sensing rate in seconds
+
+
 class PibleEnv(gym.Env):
     """
     Description:
@@ -102,11 +108,12 @@ class PibleEnv(gym.Env):
 	#])
         min_sc = np.array([SC_volt_min])
         max_sc = np.array([SC_volt_max])
-        min_act = np.array([15]) # seconds
-        max_act = np.array([900]) # seconds
-
-        self.action_space = spaces.Discrete(4)
-        #self.action_space = spaces.Box(min_act, max_act, dtype=np.float32)
+        #min_act = np.array([0]) # min action 
+        #max_act = np.array([3]) # max action
+        #min_sens = 15.0 # minimum sensing rate in seconds
+        #max_sens = 900.0 # maximum sensing rate in seconds
+        #self.action_space = spaces.Discrete(4)
+        self.action_space = spaces.Box(min_act, max_act, dtype=np.float32)
         self.observation_space = spaces.Box(min_sc, max_sc, dtype=np.float32)
 
     def step(self, action):
@@ -163,7 +170,7 @@ class PibleEnv(gym.Env):
 
 def reward_func(action, SC_volt):
 
-    reward = action
+    reward = action[0]
     #reward = int(state_trans/action)
     
     if SC_volt <= SC_volt_die:
@@ -180,7 +187,13 @@ def energy_calc(SC_volt, light, action, PIR):
     except:
         pass
     
-    #effect = state_trans/action
+    action_norm = (((action - min_act) * (max_sens - min_sens)) / (max_act - min_act)) + min_sens 
+    effect = state_trans/action_norm
+
+    #print(action, action_norm, effect)
+    #sleep(5)
+
+    '''
     if action == 3:
         effect = 60
     elif action == 2:
@@ -189,7 +202,7 @@ def energy_calc(SC_volt, light, action, PIR):
         effect = 3
     else:
         effect = 1
-
+    '''
     Energy_Rem = SC_volt * SC_volt * 0.5 * SC_size
 
     if SC_volt <= SC_volt_min: # Node is death and not consuming energy
@@ -255,31 +268,6 @@ def plot_hist(Time, Light, Action, Reward, Perf, SC_Volt, SC_Norm, PIR, episode,
     plt.ylim(0)
     plt.grid(True)
     plt.show()
-
-    '''
-    #Start Plotting
-    fig, ax = plt.subplots(1)
-    fig.autofmt_xdate()
-    plt.plot(Time, Light, 'b', label = 'Light')
-    plt.plot(Time, Action, 'y*', label = 'Action',  markersize = 15)
-    plt.plot(Time, Reward, 'k+', label = 'Reward')
-    #plt.plot(Time, Perf, 'g', label = 'Performance')
-    plt.plot(Time, SC_Volt, 'r+', label = 'SC_Voltage')
-    #plt.plot(Time, SC_Norm, 'm^', label = 'SC_Voltage_Normalized')
-    plt.plot(Time, PIR, 'c^', label = 'Occupancy')
-    xfmt = mdates.DateFormatter('%m-%d-%y %H:%M:%S')
-    ax.xaxis.set_major_formatter(xfmt)
-    ax.tick_params(axis='both', which='major', labelsize=10)
-    legend = ax.legend(loc='center right', shadow=True)
-    plt.legend(loc=9, prop={'size': 10})
-    plt.title('Epis: ' + str(episode) + ' tot_rew: ' + str(tot_rew), fontsize=15)
-    plt.ylabel('Super Capacitor Voltage[V]', fontsize=15)
-    plt.xlabel('Time[h]', fontsize=20)
-    ax.grid(True)
-    #fig.savefig('Saved_Data/Graph_hist_' + Text + '.png', bbox_inches='tight')
-    plt.show()
-    #plt.close(fig)
-    '''
 
 def pible_env_creator(env_config):
     return PibleEnv(env_config)

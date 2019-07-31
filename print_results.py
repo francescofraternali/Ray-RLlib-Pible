@@ -4,6 +4,7 @@ import ray
 from ray.rllib.agents import ddpg
 from ray.tune.registry import register_env
 from ray.rllib.agents import ppo
+from ray.rllib.agents import dqn
 from gym_envs.envs import Pible_env
 from time import sleep
 import os
@@ -23,6 +24,7 @@ path_data = os.getcwd()
 from gym_envs.envs.Pible_env import pible_env_creator
 
 register_env('Pible-v2', pible_env_creator)
+Agnt = 'DDPG'
 
 # Initialize action/obs
 pre_action = 0
@@ -35,13 +37,13 @@ ray.init()
 # Detect latest folder for trainer to resume
 latest = 0
 path = subprocess.getoutput('eval echo "~$USER"')
-proc = subprocess.Popen("ls " + path + "/ray_results/PPO/", stdout=subprocess.PIPE, shell=True)
+proc = subprocess.Popen("ls " + path + "/ray_results/" + Agnt + "/", stdout=subprocess.PIPE, shell=True)
 (out, err) = proc.communicate()
 out = out.decode()
 spl = out.strip().split('\n')
 for i in spl:
-    folder = i.split('.')
-    if "json" not in folder:
+    test = i.split('.')
+    if "json" not in test:
         d = i.split('_')
         date = d[4].split('-')
         hour = d[5].split('-')
@@ -55,7 +57,7 @@ for i in spl:
 print("folder", folder)
 
 # detect checkpoint to resume
-proc = subprocess.Popen("ls " + path + "/ray_results/PPO/" + folder + '/', stdout=subprocess.PIPE, shell=True)
+proc = subprocess.Popen("ls " + path + "/ray_results/" + Agnt + "/" + folder + '/', stdout=subprocess.PIPE, shell=True)
 (out, err) = proc.communicate()
 print(out)
 out = out.decode()
@@ -73,12 +75,14 @@ print("Found folder: ", folder, "Last checkpoint found: ", iteration)
 sleep(3)
 
 if True:
-    path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/PPO/' + folder  +
+    path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/' + Agnt +'/' + folder  +
     #path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/DDPG/DDPG_VAV-v0_0_2019-05-10_20-02-38zocesjrb' +
                      '/checkpoint_' + str(max) + '/checkpoint-' + str(max),
                      recursive=True)
     assert len(path) == 1, path
-    agent = ppo.PPOAgent(config={
+    #agent = ppo.PPOAgent(config={
+    #agent = dqn.DQNAgent(config={
+    agent = ddpg.DDPGAgent(config={
         "env_config": {
          "path": path_data,
          },

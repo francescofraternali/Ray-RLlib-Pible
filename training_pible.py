@@ -34,9 +34,9 @@ if __name__ == "__main__":
     register_env("Pible-v2", pible_env_creator)
     ray.init()
     tune.run(
-        "PPO",
+        "DDPG",
         stop={
-            "timesteps_total": 200000,
+            "timesteps_total": 5000000,
         },
 	checkpoint_freq=10,
         config={
