@@ -3,6 +3,7 @@ Copied from http://incompleteideas.net/sutton/book/code/pole.c
 permalink: https://perma.cc/C9ZM-652R
 """
 
+import tensorflow as tf
 import math
 import gym
 from gym import spaces, logger
@@ -238,6 +239,8 @@ def energy_calc(SC_volt, light, action, PIR):
 
 def plot_hist(Time, Light, Action, Reward, Perf, SC_Volt, SC_Norm, PIR, episode, tot_rew):
 
+    print("Total reward: ", tot_rew)    
+
     #Start Plotting
     plt.figure(1)
     plt.subplot(411)
@@ -267,6 +270,7 @@ def plot_hist(Time, Light, Action, Reward, Perf, SC_Volt, SC_Norm, PIR, episode,
     plt.legend(loc=9, prop={'size': 10})
     plt.ylim(0)
     plt.grid(True)
+    plt.savefig('Graph.png', bbox_inches='tight')
     plt.show()
 
 def pible_env_creator(env_config):
