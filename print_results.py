@@ -24,7 +24,7 @@ path_data = os.getcwd()
 from gym_envs.envs.Pible_env import pible_env_creator
 
 register_env('Pible-v2', pible_env_creator)
-Agnt = 'DDPG'
+Agnt = 'PPO'
 
 # Initialize action/obs
 pre_action = 0
@@ -80,9 +80,9 @@ if True:
                      '/checkpoint_' + str(max) + '/checkpoint-' + str(max),
                      recursive=True)
     assert len(path) == 1, path
-    #agent = ppo.PPOAgent(config={
+    agent = ppo.PPOAgent(config={
     #agent = dqn.DQNAgent(config={
-    agent = ddpg.DDPGAgent(config={
+    #agent = ddpg.DDPGAgent(config={
         "env_config": {
          "path": path_data,
          },
@@ -93,16 +93,19 @@ if True:
             }
     Env = Pible_env.PibleEnv(config)
     SC_volt = Env.reset()
+    print(SC_volt)
     tot_rew = 0
     while True:
         
         learned_action = agent.compute_action( 
-	    observation = [SC_volt[0]],
+	    #observation = [SC_volt[0], SC_volt[1]],
+            observation = SC_volt,
             prev_action = pre_action,
             prev_reward = pre_reward
         )
         #learned_action = 0
         SC_volt, reward, done, none = Env.step(learned_action)
+        print(SC_volt)
         tot_rew += reward
         pre_reward = reward
         pre_action = learned_action

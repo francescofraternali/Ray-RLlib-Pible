@@ -34,15 +34,16 @@ if __name__ == "__main__":
     register_env("Pible-v2", pible_env_creator)
     ray.init()
     tune.run(
-        "DDPG",
+        "PPO",
         stop={
-            "timesteps_total": 5000000,
+            "timesteps_total": 500000,
         },
 	checkpoint_freq=10,
         config={
             "env": "Pible-v2",  # or "corridor" if registered above
-            "lr": grid_search([1e-1]),  # try different lrs
-            "num_workers": 4,  # parallelism
+            "lr": grid_search([0.5e-1]),  # try different lrs
+            "num_workers": 0,  # parallelism
+            #"sample_batch_size": 32,
             "env_config": {
                 "path": path_data,
                 #"corridor_length": 5,
