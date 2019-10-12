@@ -128,8 +128,8 @@ class PibleEnv(gym.Env):
         #max_sens = 900.0 # maximum sensing rate in seconds
         self.action_space = spaces.Discrete(2)
         #self.action_space = spaces.Box(min_act, max_act, dtype=np.float32)
-        #self.observation_space = spaces.Box(min_act, max_act, dtype=np.float32)
-        self.observation_space = spaces.Discrete(24)
+        self.observation_space = spaces.Box(min_act, max_act, dtype=np.float32)
+        #self.observation_space = spaces.Discrete(24)
 
         #self.observation_space = spaces.Tuple((
         #    spaces.Box(
@@ -174,10 +174,10 @@ class PibleEnv(gym.Env):
         self.Light.append(light_pure)
         self.Action.append(action)
     
-        #return np.array([self.time.hour]), self.reward, self.done, {}
+        return np.array([self.time.hour]), self.reward, self.done, {}
         #print(np.array([self.time.hour]))
         #return (np.array([self.SC_volt]), self.time.hour), self.reward, self.done, {}
-        return self.time.hour, self.reward, self.done, {}
+        #return self.time.hour, self.reward, self.done, {}
 
 
     def reset(self):
@@ -197,8 +197,8 @@ class PibleEnv(gym.Env):
 
         #print('reset')
         #sleep(3)
-        #return np.array([2.0])
-        return 2
+        return np.array([0.0])
+        #return 2
         #return (np.array([self.SC_volt]), 2)
 
 
@@ -209,25 +209,20 @@ class PibleEnv(gym.Env):
 def reward_func(action, SC_volt, event, time):
     
     #reward = action[0]
-
+    reward = 0
     #reward = int(state_trans/action)
     if action == 1 and time >= 8 and time <= 10:
-        reward = 20
-    else:
-        reward = -1
-    
-    if action == 1 and time >=17 and time <= 19:
-        reward = 20
-        #print("assaggia 0")
-    else:
-        reward = -1
-
-    if action == 0:
         reward = 1
+    #else:
+    #    reward = -20
+    
+    if (action == 0 and time <8) or (action == 0 and time > 10):
+        reward = 1
+        #print("assaggia 0")
+    
 
-
-    if SC_volt <= SC_volt_die:
-        reward = -300
+    #if SC_volt <= SC_volt_die:
+    #    reward = -300
     
     # build a list in which you put the time fo the day in which the events happens. The list che be modified based on new events
     

@@ -41,7 +41,7 @@ if __name__ == "__main__":
 	checkpoint_freq=10,
         config={
             "env": "Pible-v2",  # or "corridor" if registered above
-            "lr": grid_search([0.5e-1]),  # try different lrs
+            "lr": grid_search([0.0001e-1]),  # try different lrs
             "num_workers": 0,  # parallelism
             #"sample_batch_size": 32,
             "env_config": {
