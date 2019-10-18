@@ -86,7 +86,7 @@ if __name__ == "__main__":
     tune.run(
         "PPO",
         stop={
-            "timesteps_total": 100000,
+            "timesteps_total": 200000,
         },
         config={
             "env": SimpleCorridor,  # or "corridor" if registered above
@@ -94,7 +94,7 @@ if __name__ == "__main__":
             #    "custom_model": "my_model",
             #},
             "vf_share_layers": True,
-            "lr": grid_search([1e-2, 1e-4, 1e-6]),  # try different lrs
+            "lr": grid_search([1e-2, 1e-3, 1e-4]),  # try different lrs
             "num_workers": 1,  # parallelism
             "env_config": {
                 "corridor_length": 5,
