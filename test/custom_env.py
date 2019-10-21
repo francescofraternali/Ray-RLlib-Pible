@@ -24,7 +24,41 @@ from ray.tune import grid_search
 
 tf = try_import_tf()
 
+class SimpleCorridor(gym.Env):
+    """Example of a custom env in which you have to walk down a corridor.
+    You can configure the length of the corridor via the env config."""
 
+    def __init__(self, config={"corridor_length": 5}):
+        self.end_pos = config["corridor_length"]
+        self.cur_pos = [0, -1, -2, -3, -4]
+        self.action_space = Discrete(2)
+        self.observation_space = Box(
+            -5.0, 23.0, shape=(5, ), dtype=np.float32)
+
+    def reset(self):
+        self.cur_pos = [0, -1, -2, -3, -4]
+        return self.cur_pos
+
+    def step(self, action):
+        assert action in [0, 1], action
+        #if action == 0 and self.cur_pos > 0:
+        #    self.cur_pos -= 1
+        #elif action == 1:
+        #    self.cur_pos += 1
+        #done = self.cur_pos >= self.end_pos
+#         self.cur_pos += 1.0
+        self.cur_pos = [x+1 for x in self.cur_pos]
+        reward = 0
+        
+        if action == 1 and self.cur_pos[0] >= 8 and self.cur_pos[0] <= 10:
+            reward = 1
+        if (action == 0 and self.cur_pos[0] < 8) or (action == 0 and self.cur_pos[0] > 10):
+            reward  = 1
+        
+        done = self.cur_pos[0] >= 23.0
+
+        return self.cur_pos, reward, done, {}
+'''
 class SimpleCorridor(gym.Env):
     """Example of a custom env in which you have to walk down a corridor.
     You can configure the length of the corridor via the env config."""
@@ -59,7 +93,7 @@ class SimpleCorridor(gym.Env):
 
         return [self.cur_pos], reward, done, {}
 
-'''
+
 class CustomModel(TFModelV2):
     """Example of a custom model that just delegates to a fc-net."""
 
@@ -86,7 +120,7 @@ if __name__ == "__main__":
     tune.run(
         "PPO",
         stop={
-            "timesteps_total": 100000,
+            "timesteps_total": 300000,
         },
         config={
             "env": SimpleCorridor,  # or "corridor" if registered above
@@ -94,8 +128,8 @@ if __name__ == "__main__":
             #    "custom_model": "my_model",
             #},
             "vf_share_layers": True,
-            "lr": grid_search([1e-2, 1e-4, 1e-6]),  # try different lrs
-            "num_workers": 1,  # parallelism
+            "lr": grid_search([1e-2, 1e-3, 1e-4, 1e-5]),  # try different lrs
+            "num_workers": 4,  # parallelism
             "env_config": {
                 "corridor_length": 5,
             },
