@@ -87,6 +87,7 @@ if True:
          "path": path_data,
          },
     }, env='Pible-v2')
+    print(path[0])
     agent.restore(path[0])
     config = {
                 "path": path_data,
@@ -94,6 +95,7 @@ if True:
     Env = Pible_env.PibleEnv(config)
     SC_volt = Env.reset()
     print(SC_volt)
+        
     tot_rew = 0
     while True:
         
