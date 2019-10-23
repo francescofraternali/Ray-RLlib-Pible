@@ -33,7 +33,7 @@ class SimpleCorridor(gym.Env):
         self.cur_pos = [0, -1, -2, -3, -4]
         self.action_space = Discrete(2)
         self.observation_space = Box(
-            0.0, 23.0, shape=(5, ), dtype=np.float32)
+            -5.0, 23.0, shape=(5, ), dtype=np.float32)
 
     def reset(self):
         self.cur_pos = [0, -1, -2, -3, -4]
