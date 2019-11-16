@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 
 # Parameters to change
-state_trans = 900 # State transition in seconds. I.e. the system takes a new action every "state_trans" seconds. It also corresponds to the communication time
+state_trans = 3600 # State transition in secs. I.e. the system takes a new action every "state_trans" time. It also corresponds to the communication time
 sens_time = 60 # Sensing time in seconds. 
 transm_thres_light = 100 # value in lux
 SC_begin = 4.0 # Super Capacitor initial voltage level. Put a number between 5.4 (i.e. max) and 2.3 (i.e. min) 
@@ -66,34 +66,11 @@ p_solar_1_lux = (v_solar_200_lux * i_solar_200_lux) / 200.0
 min_act = np.array([0.0]) # min action 
 max_act = np.array([3.0]) # max action 
 max_sens = 15.0 # minimum sensing rate in seconds
-min_sens = 900.0 # maximum sensing rate in seconds
+min_sens = 900 # maximum sensing rate in seconds
 
 l = [sens_time, PIR_events_time, state_trans]
 
 class PibleEnv(gym.Env):
-    """
-    Description:
-	A representation o the Pible-mote as a gym environment to test RL algorithms
-    Observation (not updated): 
-        Type: Box(4)
-        Num	Observation                 		Min     	Max
-        0	Super-Capacitor Voltage level		2.3		5.4
-	#0	Cart Position             		-4.8            4.8
-        #1	Cart Velocity             		-Inf            Inf
-        
-    Actions (not updated):
-        Type: Discrete(2)
-        Num	Action
-        0	15 min sensing-rate
-	1	15 sec sensing-rate
-        
-    Reward:
-        Reward equal to action if node alive (i.e. super capcitor voltage level > 2.3) else very negative (i.e. -300)
-    Starting State:
-        The super-capacitor voltage level is 4 volts
-    Episode Termination:
-        Episode terminates after 24 hours of simulation
-    """
 
     def __init__(self, config):
         self.path = config["path"]
@@ -122,13 +99,14 @@ class PibleEnv(gym.Env):
             ])
         min_sc = np.array([SC_volt_min])
         max_sc = np.array([SC_volt_max])
-        min_act = np.array([0]) # min action 
+        min_act = 0.0 # min action 
         max_act = np.array([23]) # max action
         #min_sens = 15.0 # minimum sensing rate in seconds
         #max_sens = 900.0 # maximum sensing rate in seconds
         self.action_space = spaces.Discrete(2)
         #self.action_space = spaces.Box(min_act, max_act, dtype=np.float32)
-        self.observation_space = spaces.Box(min_act, max_act, dtype=np.float32)
+        #self.observation_space = spaces.Box(np.array([0.0]), np.array([30.0*state_trans]), dtype=np.float32)
+        self.observation_space = spaces.Box(0.0, 28.0*state_trans, shape=(5, ), dtype=np.float32)
         #self.observation_space = spaces.Discrete(24)
 
         #self.observation_space = spaces.Tuple((
@@ -154,10 +132,13 @@ class PibleEnv(gym.Env):
        
         self.SC_volt, time_passed, event = next_event_energy(self.SC_volt, light_pure, self.time.hour)
         
-        self.time = self.time + datetime.timedelta(0, time_passed)
+        self.time = self.time + datetime.timedelta(0, state_trans)
 
-        if self.time >= self.end_time:
-            self.done = 1
+        self.cur_pos = [y+(state_trans/3600) for y in self.cur_pos]
+        
+        #self.cur_pos += state_trans
+        self.done = self.time >= self.end_time
+
             #print(self.time, self.end_time)
         if self.light_count == len(self.light_input) - 1:
             #print("here", self.light_count)
@@ -173,8 +154,8 @@ class PibleEnv(gym.Env):
         self.Time.append(self.time)
         self.Light.append(light_pure)
         self.Action.append(action)
-    
-        return np.array([self.time.hour]), self.reward, self.done, {}
+
+        return np.array(self.cur_pos), self.reward, self.done, {}
         #print(np.array([self.time.hour]))
         #return (np.array([self.SC_volt]), self.time.hour), self.reward, self.done, {}
         #return self.time.hour, self.reward, self.done, {}
@@ -182,22 +163,22 @@ class PibleEnv(gym.Env):
 
     def reset(self):
         self.SC_Volt = []; self.SC_Norm = []; self.Reward = []; self.PIR_hist = []; self.Perf = []; self.Time = []; self.Light = []; self.Action = []; self.light_count == 0
-        
+        self.light_count = 0        
         with open(self.path + "/Light_sample.txt", 'r') as f:
             for line in f:
                 line = line.split('|')
                 time_init = datetime.datetime.strptime(line[self.light_count], '%m/%d/%y %H:%M:%S')
                 self.time = time_init.replace(hour=0)
+                self.input_time = 0
                 break
 
         self.end_time = self.time + datetime.timedelta(0, 24*60*60)
-        self.done = 0
-        self.PIR = 0
         self.SC_volt = SC_begin
+        x = state_trans/3600
+        self.cur_pos = [self.input_time + x*4, self.input_time + x*3, self.input_time + x*2, self.input_time + x*1, self.input_time]
+        #self.cur_pos = state_trans
 
-        #print('reset')
-        #sleep(3)
-        return np.array([0.0])
+        return np.array(self.cur_pos)
         #return 2
         #return (np.array([self.SC_volt]), 2)
 
@@ -207,20 +188,28 @@ class PibleEnv(gym.Env):
 
 
 def reward_func(action, SC_volt, event, time):
-    
+        
     #reward = action[0]
     reward = 0
-    #reward = int(state_trans/action)
-    if action == 1 and time >= 8 and time <= 10:
-        reward = 1
-    #else:
-    #    reward = -20
-    
-    if (action == 0 and time <8) or (action == 0 and time > 10):
-        reward = 1
-        #print("assaggia 0")
-    
 
+    if action == 0 and time <= 5:
+        reward = 1
+    elif action == 1 and time >= 6 and time <= 9:
+        reward = 1
+    #elif action == 0 and time >= 10 and time <= 12:
+    #    reward = 1
+    #elif action == 1 and time >= 13 and time <= 14:
+    #    reward = 1
+    elif action == 0 and time >= 10 and time <= 17:
+        reward = 1
+    #elif action == 1 and time >= 14 and time <= 17:
+    #    reward  = 1
+    #elif action == 0 and time >= 18 and time <= 21:
+    #    reward = 1
+    elif action == 1 and time >= 18:
+        reward = 1
+    #elif action == 0 and time >= 24:
+    #    reward = 1
     #if SC_volt <= SC_volt_die:
     #    reward = -300
     

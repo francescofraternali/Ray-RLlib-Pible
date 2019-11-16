@@ -24,39 +24,19 @@ from ray.tune import grid_search
 
 tf = try_import_tf()
 
-t_gran = 60
-steps = 1
-
-n_input_steps = 1
-n_input = 24
-
 class SimpleCorridor(gym.Env):
     """Example of a custom env in which you have to walk down a corridor.
     You can configure the length of the corridor via the env config."""
 
     def __init__(self, config={"corridor_length": 5}):
         self.end_pos = config["corridor_length"]
-        self.time = 0 
-        #self.cur_pos = [0, -1, -2, -3, -4, -5, -6]
-        #self.cur_pos = [x * t_gran for x in self.cur_pos]
-        self.cur_pos = []
-        for i in range(0, -(n_input), -n_input_steps):
-            self.cur_pos.append(i)
-
+        self.cur_pos = [0, -1, -2, -3, -4]
         self.action_space = Discrete(2)
-        start = -60.0 #* t_gran
-        self.end = 23.0 #* t_gran
         self.observation_space = Box(
-            start, self.end, shape=(n_input, ), dtype=np.float32)
+            -5.0, 23.0, shape=(5, ), dtype=np.float32)
 
     def reset(self):
-        #self.cur_pos = [0, -1, -2, -3, -4]
-        self.cur_pos = []
-        self.time = 0
-        for i in range(0, -(n_input), -n_input_steps):
-            self.cur_pos.append(i)
-
-        #self.cur_pos = [x * t_gran for x in self.cur_pos]
+        self.cur_pos = [0, -1, -2, -3, -4]
         return self.cur_pos
 
     def step(self, action):
@@ -66,39 +46,32 @@ class SimpleCorridor(gym.Env):
         #elif action == 1:
         #    self.cur_pos += 1
         #done = self.cur_pos >= self.end_pos
-        #         self.cur_pos += 1.0
-
-        self.time += 1
-        if (self.time % t_gran) == 0:
-            self.cur_pos = [x+(1*steps) for x in self.cur_pos]
-#            print(self.cur_pos)
-        else:
-            self.cur_pos = [x for x in self.cur_pos]
+#         self.cur_pos += 1.0
+        self.cur_pos = [x+1 for x in self.cur_pos]
 
         reward = 0
-
-        if action == 0 and self.cur_pos[0] <= 5*t_gran:
+        
+        if action == 0 and self.cur_pos[0] <= 5:
             reward = 1
-        elif action == 1 and self.cur_pos[0] >= 6*t_gran and self.cur_pos[0] <= 10*t_gran:
+        elif action == 1 and self.cur_pos[0] >= 6 and self.cur_pos[0] <= 10:
             reward = 1
-        elif action == 0 and self.cur_pos[0] >= 11*t_gran and self.cur_pos[0] <= 12*t_gran:
+        elif action == 0 and self.cur_pos[0] >= 11 and self.cur_pos[0] <= 12:
             reward = 1
-        elif action == 1 and self.cur_pos[0] >= 13*t_gran and self.cur_pos[0] <= 14*t_gran:
+        elif action == 1 and self.cur_pos[0] >= 13 and self.cur_pos[0] <= 14:
             reward = 1
-        elif action == 0 and self.cur_pos[0] >= 15*t_gran and self.cur_pos[0] <= 16*t_gran:
+        elif action == 0 and self.cur_pos[0] >= 15 and self.cur_pos[0] <= 16:
             reward = 1
-        elif action == 1 and self.cur_pos[0] >= 17*t_gran and self.cur_pos[0] <= 19*t_gran:
+        elif action == 1 and self.cur_pos[0] >= 17 and self.cur_pos[0] <= 19:
             reward  = 1
-        elif action == 0 and self.cur_pos[0] >= 20*t_gran and self.cur_pos[0] <= 21*t_gran:
+        elif action == 0 and self.cur_pos[0] >= 20 and self.cur_pos[0] <= 21:
             reward = 1
-        elif action == 1 and self.cur_pos[0] >= 22*t_gran and self.cur_pos[0] <= 23*t_gran:
+        elif action == 1 and self.cur_pos[0] >= 22 and self.cur_pos[0] <= 23:
             reward = 1
-        elif action == 0 and self.cur_pos[0] >= 24*t_gran:
+        elif action == 0 and self.cur_pos[0] >= 24:
             reward = 1
 
-        done = self.cur_pos[0] >= self.end
-#        if done:    
-#            print("tutto finitooooooooooooooooo")
+        done = self.cur_pos[0] >= 23.0
+
         return self.cur_pos, reward, done, {}
 
 '''
@@ -160,9 +133,8 @@ if __name__ == "__main__":
             #"model": {
             #    "custom_model": "my_model",
             #},
-            "observation_filter": 'MeanStdFilter',
             "vf_share_layers": True,
-            "lr": grid_search([1e-3, 1e-4, 1e-5, 1e-6]),  # try different lrs
+            "lr": grid_search([1e-3]),  # try different lrs
             "num_workers": 1,  # parallelism
             "env_config": {
                 "corridor_length": 5,

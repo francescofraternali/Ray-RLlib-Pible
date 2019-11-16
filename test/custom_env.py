@@ -33,7 +33,7 @@ class SimpleCorridor(gym.Env):
         self.cur_pos = [0, -1, -2, -3, -4]
         self.action_space = Discrete(2)
         self.observation_space = Box(
-            -5.0, 23.0, shape=(5, ), dtype=np.float32)
+            0.0, 23.0, shape=(5, ), dtype=np.float32)
 
     def reset(self):
         self.cur_pos = [0, -1, -2, -3, -4]
@@ -134,7 +134,7 @@ if __name__ == "__main__":
             #    "custom_model": "my_model",
             #},
             "vf_share_layers": True,
-            "lr": grid_search([1e-3, 1e-4, 1e-5, 1e-6]),  # try different lrs
+            "lr": grid_search([1e-3]),  # try different lrs
             "num_workers": 1,  # parallelism
             "env_config": {
                 "corridor_length": 5,
