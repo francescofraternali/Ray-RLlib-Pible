@@ -14,16 +14,13 @@ import datetime
 #path_data = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
 path_data = os.getcwd()
 
-#start_time = arrow.get(2018, 4, 1, tzinfo=PT)
-#end_time = arrow.get(2018, 4, 5, tzinfo=PT)
-
 # Read data
 #observations, actions, consumptions, time_range, scalers = read_data(start_time, end_time, '2146', normalize=True)
 
 # Init exp
-from gym_envs.envs.Pible_env import pible_env_creator
-
-register_env('Pible-v2', pible_env_creator)
+from training_pible import SimplePible
+#from gym_envs.envs.Pible_env import pible_env_creator
+#register_env('Pible-v2', pible_env_creator)
 Agnt = 'PPO'
 
 # Initialize action/obs
@@ -53,7 +50,7 @@ for i in spl:
         else:
             if x > time:
                 folder = i; time = x
-        
+
 print("folder", folder)
 
 # detect checkpoint to resume
@@ -70,36 +67,40 @@ for i in spl:
         if int(tester[1]) > max:
             max = int(tester[1])
             iteration = i
-        
-print("Found folder: ", folder, "Last checkpoint found: ", iteration)
+
+print("\nFound folder: ", folder, "Last checkpoint found: ", iteration, '\n')
 sleep(3)
 
 if True:
     path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/' + Agnt +'/' + folder  +
     #path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/DDPG/DDPG_VAV-v0_0_2019-05-10_20-02-38zocesjrb' +
-                     '/checkpoint_' + str(max) + '/checkpoint-' + str(max),
-                     recursive=True)
+                     '/checkpoint_' + str(max) + '/checkpoint-' + str(max), recursive=True)
     assert len(path) == 1, path
     agent = ppo.PPOAgent(config={
     #agent = dqn.DQNAgent(config={
     #agent = ddpg.DDPGAgent(config={
         "env_config": {
-         "path": path_data,
+            "vf_share_layers": True,
+            "observation_filter": 'MeanStdFilter',
+            "path": path_data,
+            "corridor_length": 5,
          },
-    }, env='Pible-v2')
+    #}, env='Pible-v2')
+    }, env=SimplePible)
     print(path[0])
     agent.restore(path[0])
+    exit()
     config = {
                 "path": path_data,
             }
     Env = Pible_env.PibleEnv(config)
     SC_volt = Env.reset()
     print(SC_volt)
-        
+
     tot_rew = 0
     while True:
-        
-        learned_action = agent.compute_action( 
+
+        learned_action = agent.compute_action(
 	    #observation = [SC_volt[0], SC_volt[1]],
             observation = SC_volt,
             prev_action = pre_action,

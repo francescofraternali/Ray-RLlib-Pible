@@ -1,4 +1,4 @@
-"""Example of a custom gym environment and model. Run this for a demo.
+tra"""Example of a custom gym environment and model. Run this for a demo.
 This example shows:
   - using a custom environment
   - using a custom model
@@ -50,7 +50,7 @@ class SimpleCorridor(gym.Env):
         self.cur_pos = [x+1 for x in self.cur_pos]
 
         reward = 0
-        
+
         if action == 0 and self.cur_pos[0] <= 5:
             reward = 1
         elif action == 1 and self.cur_pos[0] >= 6 and self.cur_pos[0] <= 10:

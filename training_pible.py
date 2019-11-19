@@ -1,7 +1,6 @@
 """Example of a custom gym environment and model. Run this for a demo.
 You can visualize experiment results in ~/ray_results using TensorBoard.
 """
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -21,11 +20,9 @@ import Pible_func
 
 tf = try_import_tf()
 
-t_gran = 60
-steps = 1
+t_gran = 60; steps = 1
 
-n_input_steps = 1
-n_input = 24
+n_input_steps = 1; n_input = 24
 
 class SimplePible(gym.Env):
     """Example of a custom env in which you have to walk down a corridor.
@@ -55,8 +52,10 @@ class SimplePible(gym.Env):
 
     def reset(self):
         #self.cur_pos = [0, -1, -2, -3, -4]
+        self.SC_Volt = []; self.SC_Norm = []; self.Reward = []; self.PIR_hist = []; self.Perf = []; self.Time = []; self.Light = []; self.Action = []
         self.cur_pos = []
         self.time = 0
+        self.events = Pible_func.events()
         self.SC_volt = np.array([SC_begin])
         #self.cur_pos = np.array([])
 
@@ -70,26 +69,32 @@ class SimplePible(gym.Env):
     def step(self, action):
         assert action in [0, 1], action
 
-        self.time += 1
+        next_wake_up_time = 1 # in min
+        self.time += 1 # in min
         hour = int(self.time / t_gran)
-        #print(self.time, hour)
 
         if (self.time % t_gran) == 0:
             self.cur_pos = [x+(1*steps) for x in self.cur_pos]
-#            print(self.cur_pos)
         else:
             self.cur_pos = [x for x in self.cur_pos]
 
         light = int(Pible_func.light_env(hour))
 
-        self.SC_volt, time_passed, event = Pible_func.Energy(self.SC_volt, light, action)
+        event, self.events = Pible_func.event_func(self.time, next_wake_up_time, self.events)
 
-        reward = Pible_func.reward_func(action, self.cur_pos, t_gran)
+        self.SC_volt = Pible_func.Energy(self.SC_volt, light, action, next_wake_up_time, event)
+
+        reward = Pible_func.reward_func(action, event, self.SC_volt)
 
         done = self.cur_pos[0] >= self.end
+
+        self.SC_Volt.append(self.SC_volt); self.Reward.append(reward); self.PIR_hist.append(event); self.Time.append(self.time); self.Light.append(light); self.Action.append(action);
         #print((self.cur_pos, self.SC_volt))
         #self.SC_volt = np.array([SC_begin])
         return (self.cur_pos, self.SC_volt), reward, done, {}
+
+    def render(self, episode, tot_rew):
+        Pible_func.plot_hist(self.Time, self.Light, self.Action, self.Reward, self.Perf, self.SC_Volt, self.SC_Norm, self.PIR_hist, episode, tot_rew)
 
 if __name__ == "__main__":
     # Can also register the env creator function explicitly with:
@@ -101,6 +106,7 @@ if __name__ == "__main__":
         stop={
             "timesteps_total": 200000,
         },
+        checkpoint_freq=10,
         config={
             "observation_filter": 'MeanStdFilter',
             "env": SimplePible,  # or "corridor" if registered above
