@@ -1,5 +1,8 @@
 from Pible_parameters import *
 import numpy as np
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import datetime
 
 def Energy(SC_volt, light, action, next_wake_up_time, event):
 
@@ -46,7 +49,7 @@ def Energy(SC_volt, light, action, next_wake_up_time, event):
 def event_func(t_min, next_wake_up_time, events): # check how many events are on this laps of time
         event = 0
         for check in events:
-            if t_min <= check and check <= t_min + next_wake_up_time:
+            if t_min <= check and check <= next_wake_up_time:
                 event += 1
                 events.remove(check)
         #print(t_min, check, next_wake_up_time)
@@ -67,48 +70,66 @@ def reward_func(action, event, SC_volt):
 def light_env(time):
     light = 0
     if time > 8 and time < 16:
-        light = 1500
+        light = 0
 
     return light
 
 def events():
-    events = [100, 200, 400, 456, 542] # in minutes
-    events.append(50)
-    events.append(30)
+    #self.time = datetime.datetime.strptime(Splitted[0], '%m/%d/%y %H:%M:%S')
+    events = [] # in minutes
+    events.append(datetime.datetime.strptime('01/01/17 03:05:00', '%m/%d/%y %H:%M:%S'))
+    events.append(datetime.datetime.strptime('01/01/17 04:10:00', '%m/%d/%y %H:%M:%S'))
+    events.append(datetime.datetime.strptime('01/01/17 07:05:00', '%m/%d/%y %H:%M:%S'))
+    events.append(datetime.datetime.strptime('01/01/17 14:05:00', '%m/%d/%y %H:%M:%S'))
+    events.append(datetime.datetime.strptime('01/01/17 15:05:00', '%m/%d/%y %H:%M:%S'))
     return events
 
 
-def plot_hist(Time, Light, Action, Reward, Perf, SC_Volt, SC_Norm, PIR, episode, tot_rew):
+def plot_hist(Time, Light, PIR_OnOff, State_Trans, Reward, Perf, SC_Volt, SC_Norm, PIR, episode, tot_rew):
 
     print("Total reward: ", tot_rew)
     #Start Plotting
     plt.figure(1)
-    plt.subplot(411)
-    plt.title(('Sensing every {0} sec, PIR {1} ({2} events). Tot reward: {3}').format(state_trans, using_PIR, PIR_events, tot_rew))
+    plt.subplot(611)
+    plt.title(('Transmitting every {0} sec, PIR {1} ({2} events). Tot reward: {3}').format('60', using_PIR, PIR_events, tot_rew))
     plt.plot(Time, Light, 'b-', label = 'Light', markersize = 10)
-    plt.ylabel('Light [lux]', fontsize=15)
+    plt.ylabel('Light\n[lux]', fontsize=15)
     plt.legend(loc=9, prop={'size': 10})
     plt.ylim(0)
     plt.grid(True)
-    plt.subplot(412)
+    plt.subplot(612)
     plt.plot(Time, PIR, 'k.', label = 'PIR detection', markersize = 15)
-    plt.ylabel('PIR [boolean]', fontsize=15)
+    plt.ylabel('PIR\n[boolean]', fontsize=15)
     plt.xlabel('Time [h]', fontsize=20)
     plt.legend(loc=9, prop={'size': 10})
     plt.ylim(-0.25, 1.25)
     plt.grid(True)
-    plt.subplot(413)
+    plt.subplot(613)
     plt.plot(Time, SC_Volt, 'r.', label = 'SC Voltage', markersize = 15)
-    plt.ylabel('Super Capacitor\nVoltage [V]', fontsize=15)
+    plt.ylabel('Super\nCapacitor\nVoltage [V]', fontsize=15)
     plt.legend(loc=9, prop={'size': 10})
     plt.ylim(2.2,5.6)
     plt.grid(True)
-    plt.subplot(414)
-    plt.plot(Time, Action, 'y.', label = 'Actions', markersize = 15)
-    plt.ylabel('Actions [num]', fontsize=15)
+    plt.subplot(614)
+    plt.plot(Time, PIR_OnOff, 'y.', label = 'PIR_OnOff', markersize = 15)
+    plt.ylabel('PIR_OnOff\n[num]', fontsize=15)
     plt.xlabel('Time [h]', fontsize=20)
     plt.legend(loc=9, prop={'size': 10})
     plt.ylim(0)
+    plt.grid(True)
+    plt.subplot(615)
+    plt.plot(Time, State_Trans, 'g.', label = 'State Transition', markersize = 15)
+    plt.ylabel('State\nTransition\n[num]', fontsize=15)
+    plt.xlabel('Time [h]', fontsize=20)
+    plt.legend(loc=9, prop={'size': 10})
+    plt.ylim(0)
+    plt.grid(True)
+    plt.subplot(616)
+    plt.plot(Time, Reward, 'b.', label = 'Reward', markersize = 15)
+    plt.ylabel('Reward\n[num]', fontsize=15)
+    plt.xlabel('Time [h]', fontsize=20)
+    plt.legend(loc=9, prop={'size': 10})
+    #plt.ylim(0)
     plt.grid(True)
     plt.savefig('Graph.png', bbox_inches='tight')
     plt.show()

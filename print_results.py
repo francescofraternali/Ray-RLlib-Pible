@@ -9,6 +9,7 @@ from gym_envs.envs import Pible_env
 from time import sleep
 import os
 import datetime
+import numpy as np
 #import arrow
 
 #path_data = subprocess.getoutput('eval echo "~$USER"') + "/Desktop/Ray-RLlib-Pible/gym_envs/envs"
@@ -69,7 +70,7 @@ for i in spl:
             iteration = i
 
 print("\nFound folder: ", folder, "Last checkpoint found: ", iteration, '\n')
-sleep(3)
+sleep(1)
 
 if True:
     path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/' + Agnt +'/' + folder  +
@@ -89,26 +90,33 @@ if True:
     }, env=SimplePible)
     print(path[0])
     agent.restore(path[0])
-    exit()
+    '''
     config = {
                 "path": path_data,
             }
     Env = Pible_env.PibleEnv(config)
     SC_volt = Env.reset()
-    print(SC_volt)
-
+    '''
+    config = {
+            "path": path_data,
+            "corridor_length": 5,
+        }
+    Env = SimplePible(config)
+    obs = Env.reset()
+    pre_action = [np.array(0), np.array(0)]
+    #print(SC_volt)
     tot_rew = 0
     while True:
-
         learned_action = agent.compute_action(
 	    #observation = [SC_volt[0], SC_volt[1]],
-            observation = SC_volt,
+            observation = obs,
             prev_action = pre_action,
-            prev_reward = pre_reward
+            #prev_reward = pre_reward
         )
         #learned_action = 0
-        SC_volt, reward, done, none = Env.step(learned_action)
-        print(SC_volt)
+        #print(learned_action)
+        obs, reward, done, none = Env.step(learned_action)
+        print(reward)
         tot_rew += reward
         pre_reward = reward
         pre_action = learned_action
