@@ -1,0 +1,13 @@
+{
+  "batch_mode": "complete_episodes",
+  "env": "<class '__main__.SimplePible'>",
+  "env_config": {
+    "end": "10/21/19 00:00:00",
+    "sc_volt_start": "rand",
+    "start": "10/15/19 00:00:00",
+    "train/test": "train"
+  },
+  "lr": 0.0001,
+  "num_workers": 6,
+  "observation_filter": "MeanStdFilter"
+}

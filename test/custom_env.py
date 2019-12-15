@@ -1,4 +1,4 @@
-tra"""Example of a custom gym environment and model. Run this for a demo.
+"""Example of a custom gym environment and model. Run this for a demo.
 This example shows:
   - using a custom environment
   - using a custom model
@@ -30,13 +30,16 @@ class SimpleCorridor(gym.Env):
 
     def __init__(self, config={"corridor_length": 5}):
         self.end_pos = config["corridor_length"]
-        self.cur_pos = [0, -1, -2, -3, -4]
+        #self.cur_pos = [0, -1, -2, -3, -4]
+        self.cur_pos = [0]
         self.action_space = Discrete(2)
         self.observation_space = Box(
-            0.0, 23.0, shape=(5, ), dtype=np.float32)
+            #-4.0, 23.0, shape=(5, ), dtype=np.float32)
+            0.0, 23.0, shape=(1, ), dtype=np.float32)
 
     def reset(self):
-        self.cur_pos = [0, -1, -2, -3, -4]
+        #self.cur_pos = [0, -1, -2, -3, -4]
+        self.cur_pos = [0]
         return self.cur_pos
 
     def step(self, action):
