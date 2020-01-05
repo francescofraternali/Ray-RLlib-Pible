@@ -1,0 +1,19 @@
+[
+  {
+    "title": "Middle of an Office. Events Detected: ",
+    "path_light_data": "/FF66_2150_Middle_Event_RL_Adapted.txt",
+    "light_divider": "2",
+    "train/test": "",
+    "start_train": "11/24/19 00:00:00",
+    "end_train": "12/02/19 00:00:00",
+    "start_test": "12/02/19 00:00:00",
+    "end_test": "12/09/19 00:00:00",
+    "repeat": 5,
+    "start_print": "12/12/19 06:00:00",
+    "end_print": "12/13/19 03:00:00",
+    "agent_saved_folder": "PPO_SimplePible_0_lr=0.0001_2019-12-17_03-52-13yc0h1mw_",
+    "sc_volt_start_train": "rand",
+    "sc_volt_start_test": "3.5",
+    "timesteps_total": 100e6
+}
+]

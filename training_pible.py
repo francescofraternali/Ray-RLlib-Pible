@@ -23,16 +23,16 @@ import os
 import random
 
 curr_path = os.getcwd()
-#path_light_data = curr_path + '/FF66_2150_Middle_Event_RL_Adapted.txt'; light_divider = 1.5  # light /1.5, SC_start = 4.0
+#path_light_data = curr_path + '/FF66_2150_Middle_Event_RL_Adapted.txt'; light_divider = 2  # light /1.5 and 1.7, SC_start = 4.0
 #path_light_data = curr_path + '/FF21_2146_Corridor_Event_RL_Adapted.txt'
-#path_light_data = curr_path + '/FF59_2104_Door_Event_RL_Adapted.txt'; light_divider = 0.9
-#path_light_data = curr_path + '/B3_2140_Stairs1F_Event_Battery_Adapted.txt'; light_divider = 1.7
-path_light_data = curr_path + '/FF5_2106_Door_Event_Battery_Adapted.txt'; light_divider = 0.7
+#path_light_data = curr_path + '/FF59_2104_Door_Event_RL_Adapted.txt'; light_divider = 1.77
+path_light_data = curr_path + '/B3_2140_Stairs1F_Event_Battery_Adapted.txt'; light_divider = 2.35
+#path_light_data = curr_path + '/FF5_2106_Door_Event_Battery_Adapted.txt'; light_divider = 0.7
 
 num_hours_input = 20; num_minutes_input = 20;
 num_volt_input = 20; num_light_input = 20
 
-s_t_min_act = 0; s_t_max_act = 1; s_t_min_new = 1; s_t_max_new = 15
+s_t_min_act = 0; s_t_max_act = 1; s_t_min_new = 1; s_t_max_new = 60
 
 class SimplePible(gym.Env):
     """Example of a custom env in which you have to walk down a corridor.
@@ -80,8 +80,8 @@ class SimplePible(gym.Env):
         self.observation_space = spaces.Tuple((
             spaces.Box(0, 23, shape=(num_hours_input, ), dtype=np.float32),       # hours
             #spaces.Box(0, 59, shape=(num_minutes_input, ), dtype=np.float32),       # minutes
-            spaces.Box(0, 2000, shape=(num_light_input, ), dtype=np.float32),       # light
             #spaces.Discrete(2),      #week/weekends
+            spaces.Box(0, 1000, shape=(num_light_input, ), dtype=np.float32),       # light
             spaces.Box(SC_volt_min, SC_volt_max, shape=(num_volt_input, ), dtype=np.float32)
         ))
         self.SC_Volt = []; self.Reward = []; self.PIR_hist = []; self.Perf = []; self.Time = []; self.Light = []; self.PIR_OnOff = []; self.State_Trans = []
@@ -177,7 +177,11 @@ class SimplePible(gym.Env):
 
         #self.light_ar = np.array([self.light])
         #return (self.hour, self.minute, self.light_ar, self.SC_volt), reward, done, {}, en_prod, en_used
-        return (self.hour, self.light_ar, self.SC_volt), reward, done, {}
+        info = {}
+        info["Energy_used"] = en_used
+        info["Energy_prod"] = en_prod
+        info["Tot_events"] = self.tot_events
+        return (self.hour, self.light_ar, self.SC_volt), reward, done, info
 
 
     def render(self, episode, tot_rew, start, end):
@@ -213,14 +217,14 @@ if __name__ == "__main__":
             "batch_mode": "complete_episodes",
             "env": SimplePible,  # or "corridor" if registered above
             #"vf_share_layers": True,
-            "lr": grid_search([1e-4]),  # try different lrs
-            "num_workers": 6,  # parallelism
+            "lr": grid_search([1e-4, 1e-3]),  # try different lrs
+            "num_workers": 1,  # parallelism
             "env_config": {
                 "train/test": "train",
-                "start": "11/24/19 00:00:00",
-                "end": "12/02/19 00:00:00",
-                #"start": "06/23/19 00:00:00",
-                #"end": "06/30/19 00:00:00",
+                #"start": "11/24/19 00:00:00",
+                #"end": "12/02/19 00:00:00",
+                "start": "06/23/19 00:00:00",
+                "end": "06/30/19 00:00:00",
                 "sc_volt_start": 'rand',
             },
         },

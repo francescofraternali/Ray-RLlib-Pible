@@ -1,0 +1,114 @@
+Traceback (most recent call last):
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/tune/trial_runner.py", line 506, in _process_trial
+    result = self.trial_executor.fetch_result(trial)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/tune/ray_trial_executor.py", line 347, in fetch_result
+    result = ray.get(trial_future[0])
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/worker.py", line 2349, in get
+    raise value
+ray.exceptions.RayTaskError: [36mray_PPO:train()[39m (pid=30534, host=Francesco-PC)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/agents/trainer.py", line 417, in train
+    raise e
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/agents/trainer.py", line 406, in train
+    result = Trainable.train(self)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/tune/trainable.py", line 176, in train
+    result = self._train()
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/agents/trainer_template.py", line 129, in _train
+    fetches = self.optimizer.step()
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/optimizers/multi_gpu_optimizer.py", line 140, in step
+    self.num_envs_per_worker, self.train_batch_size)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/optimizers/rollout.py", line 29, in collect_samples
+    next_sample = ray_get_and_free(fut_sample)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/utils/memory.py", line 33, in ray_get_and_free
+    result = ray.get(object_ids)
+ray.exceptions.RayTaskError: [36mray_RolloutWorker:sample()[39m (pid=30533, host=Francesco-PC)
+  File "/home/francesco/.local/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1356, in _do_call
+    return fn(*args)
+  File "/home/francesco/.local/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1341, in _run_fn
+    options, feed_dict, fetch_list, target_list, run_metadata)
+  File "/home/francesco/.local/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1429, in _call_tf_sessionrun
+    run_metadata)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Received a label value of 2 which is outside the valid range of [0, 2).  Label values: 2
+	 [[{{node default_policy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits}}]]
+
+During handling of the above exception, another exception occurred:
+
+[36mray_RolloutWorker:sample()[39m (pid=30533, host=Francesco-PC)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/utils/tf_run_builder.py", line 48, in get
+    self.feed_dict, os.environ.get("TF_TIMELINE_DIR"))
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/utils/tf_run_builder.py", line 94, in run_timeline
+    fetches = sess.run(ops, feed_dict=feed_dict)
+  File "/home/francesco/.local/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 950, in run
+    run_metadata_ptr)
+  File "/home/francesco/.local/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1173, in _run
+    feed_dict_tensor, options, run_metadata)
+  File "/home/francesco/.local/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1350, in _do_run
+    run_metadata)
+  File "/home/francesco/.local/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1370, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Received a label value of 2 which is outside the valid range of [0, 2).  Label values: 2
+	 [[node default_policy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits (defined at /.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/models/tf/tf_action_dist.py:54) ]]
+
+Errors may have originated from an input operation.
+Input Source operations connected to node default_policy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:
+ default_policy/split (defined at /.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/models/tf/tf_action_dist.py:214)
+
+Original stack trace for 'default_policy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits':
+  File "/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/workers/default_worker.py", line 98, in <module>
+    ray.worker.global_worker.main_loop()
+  File "/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/evaluation/rollout_worker.py", line 348, in __init__
+    self._build_policy_map(policy_dict, policy_config)
+  File "/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/evaluation/rollout_worker.py", line 764, in _build_policy_map
+    policy_map[name] = cls(obs_space, act_space, merged_conf)
+  File "/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/policy/tf_policy_template.py", line 143, in __init__
+    obs_include_prev_action_reward=obs_include_prev_action_reward)
+  File "/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/policy/dynamic_tf_policy.py", line 170, in __init__
+    action_logp = action_dist.sampled_action_logp()
+  File "/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/models/tf/tf_action_dist.py", line 261, in sampled_action_logp
+    p = self.child_distributions[0].sampled_action_logp()
+  File "/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/models/tf/tf_action_dist.py", line 41, in sampled_action_logp
+    return self.logp(self.sample_op)
+  File "/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/models/tf/tf_action_dist.py", line 54, in logp
+    logits=self.inputs, labels=tf.cast(x, tf.int32))
+  File "/.local/lib/python3.6/site-packages/tensorflow/python/ops/nn_ops.py", line 3342, in sparse_softmax_cross_entropy_with_logits
+    precise_logits, labels, name=name)
+  File "/.local/lib/python3.6/site-packages/tensorflow/python/ops/gen_nn_ops.py", line 11350, in sparse_softmax_cross_entropy_with_logits
+    labels=labels, name=name)
+  File "/.local/lib/python3.6/site-packages/tensorflow/python/framework/op_def_library.py", line 788, in _apply_op_helper
+    op_def=op_def)
+  File "/.local/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py", line 507, in new_func
+    return func(*args, **kwargs)
+  File "/.local/lib/python3.6/site-packages/tensorflow/python/framework/ops.py", line 3616, in create_op
+    op_def=op_def)
+  File "/.local/lib/python3.6/site-packages/tensorflow/python/framework/ops.py", line 2005, in __init__
+    self._traceback = tf_stack.extract_stack()
+
+
+During handling of the above exception, another exception occurred:
+
+[36mray_RolloutWorker:sample()[39m (pid=30533, host=Francesco-PC)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/evaluation/rollout_worker.py", line 469, in sample
+    batches = [self.input_reader.next()]
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/evaluation/sampler.py", line 56, in next
+    batches = [self.get_data()]
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/evaluation/sampler.py", line 99, in get_data
+    item = next(self.rollout_provider)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/evaluation/sampler.py", line 327, in _env_runner
+    active_episodes)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/evaluation/sampler.py", line 551, in _do_policy_eval
+    eval_results[k] = builder.get(v)
+  File "/home/francesco/.conda/envs/rayrllib/lib/python3.6/site-packages/ray/rllib/utils/tf_run_builder.py", line 53, in get
+    self.fetches, self.feed_dict))
+ValueError: Error fetching: [TupleActions(batches=[<tf.Tensor 'default_policy/Squeeze:0' shape=(?,) dtype=int64>, <tf.Tensor 'default_policy/add:0' shape=(?, 1) dtype=float32>]), {'action_prob': <tf.Tensor 'default_policy/Exp_1:0' shape=(?,) dtype=float32>, 'action_logp': <tf.Tensor 'default_policy/add_1:0' shape=(?,) dtype=float32>, 'vf_preds': <tf.Tensor 'default_policy/Reshape_3:0' shape=(?,) dtype=float32>, 'behaviour_logits': <tf.Tensor 'default_policy/model/fc_out/BiasAdd:0' shape=(?, 4) dtype=float32>}], feed_dict={<tf.Tensor 'default_policy/observation:0' shape=(?, 60) dtype=float32>: [array([-1.63896835,  1.48230504,  1.47315021,  1.46458936,  1.32313651,
+        1.31845729,  1.31517173,  1.1761287 ,  1.17626256,  1.17793012,
+        1.18016506,  1.04492641,  1.04733938,  1.04967696,  1.05195271,
+        0.91581076,  0.91781448,  0.9197547 ,  0.92167209,  0.92357202,
+       -0.53548131, -0.53548091, -0.53548091, -0.53548091, -0.53548091,
+       -0.53548091, -0.53548091, -0.53548091, -0.53548091, -0.53548184,
+       -0.53548889, -0.53552236, -0.5356394 , -0.53588353, -0.5362523 ,
+       -0.53673279, -0.53732581, -0.53804678, -0.53896908, -0.54015677,
+       -0.25791316, -0.25413395, -0.22271385, -0.21891413, -0.2108626 ,
+       -0.17928028, -0.17547016, -0.17165633, -0.15846682, -0.15464832,
+       -0.15082173, -0.13109932, -0.09971656, -0.09592373, -0.09212301,
+       -0.08830803, -0.05701766, -0.05318415, -0.04931882, -0.04541948])], <tf.Tensor 'default_policy/action:0' shape=(?, 2) dtype=float32>: [array([0., 0.])], <tf.Tensor 'default_policy/prev_reward:0' shape=(?,) dtype=float32>: [0.0], <tf.Tensor 'default_policy/PlaceholderWithDefault:0' shape=() dtype=bool>: False}
+
+

@@ -1,0 +1,19 @@
+[
+  {
+    "title": "Door. Events Detected: ",
+    "path_light_data": "/FF59_2104_Door_Event_RL_Adapted.txt",
+    "light_divider": "1.77",
+    "train/test": "",
+    "start_train": "10/15/19 00:00:00",
+    "end_train": "10/21/19 00:00:00",
+    "start_test": "11/24/19 00:00:00",
+    "end_test": "12/02/19 00:00:00",
+    "repeat": 3,
+    "start_print": "12/05/19 06:00:00",
+    "end_print": "12/06/19 18:00:00",
+    "agent_saved_folder": "PPO_SimplePible_0_lr=0.0001_2019-12-17_21-52-51chh7yh9m",
+    "sc_volt_start_train": "rand",
+    "sc_volt_start_test": "3.5",
+    "timesteps_total": 100e6
+}
+]

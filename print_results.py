@@ -74,24 +74,24 @@ for i in spl:
 iteration = max
 print("\nFound folder: ", folder, "Last checkpoint found: ", iteration, '\n')
 
-'''
+
 max_mean = - 10000
 count = 0
 for line in open(path + "/ray_results/" + Agnt + "/" + folder + "/result.json", 'r'):
     count += 1
     dict = json.loads(line)
-    if dict['episode_reward_mean'] >= max_mean:
+    if dict['episode_reward_mean'] >= max_mean and count > 9:
         max_mean = dict['episode_reward_mean']
         iteration = count
     #data = json.loads(text)
 
     #for p in data["episode_reward_mean"]:
     #    print(p)
-
+print(iteration)
 iter_str = str(iteration)
 iteration = (int(iter_str[:-1])* 10)
 print("Best checkpoint found:", iteration, ". Mean Reward Episode: ", max_mean)
-'''
+
 
 sleep(1)
 if True:
@@ -99,10 +99,10 @@ if True:
     #path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/DDPG/DDPG_VAV-v0_0_2019-05-10_20-02-38zocesjrb' +
                      '/checkpoint_' + str(iteration) + '/checkpoint-' + str(iteration), recursive=True)
     assert len(path) == 1, path
-    start = "11/24/19 00:00:00"
-    end = "12/02/19 00:00:00"
-    #start = "06/23/19 00:00:00"
-    #end = "06/30/19 00:00:00"
+    #start = "11/24/19 00:00:00"
+    #end = "12/02/19 00:00:00"
+    start = "06/23/19 00:00:00"
+    end = "06/30/19 00:00:00"
     agent = ppo.PPOAgent(config={
     #agent = dqn.DQNAgent(config={
     #agent = ddpg.DDPGAgent(config={
@@ -114,7 +114,7 @@ if True:
             "train/test": "test",
             "start": start,
             "end": end,
-            "sc_volt_start": '4',
+            "sc_volt_start": '3.5',
          },
     #}, env='Pible-v2')
     }, env=SimplePible)
@@ -124,10 +124,10 @@ if True:
             "train/test": "test",
             "start": start,
             "end": end,
-            "sc_volt_start": '4',
+            "sc_volt_start": '3.5',
         }
     diff_days = datetime.datetime.strptime(end, '%m/%d/%y %H:%M:%S') - datetime.datetime.strptime(start, '%m/%d/%y %H:%M:%S')
-    print(diff_days.days)
+    print("days", diff_days.days)
     #exit()
     Env = SimplePible(config)
     obs = Env.reset()
@@ -147,9 +147,9 @@ if True:
         #learned_action[1][0] = 1
         #print(learned_action)
         #obs, reward, done, none, energy_prod, energy_used = Env.step(learned_action)
-        obs, reward, done, none = Env.step(learned_action)
-        #energy_used_tot += energy_used
-        #energy_prod_tot += energy_prod
+        obs, reward, done, res = Env.step(learned_action)
+        energy_used_tot += float(res["Energy_used"])
+        energy_prod_tot += float(res["Energy_prod"])
         tot_rew += reward
         pre_reward = reward
         pre_action = [learned_action[0][0], learned_action[1][0]]
@@ -159,9 +159,12 @@ if True:
         if stop >= repeat*(diff_days.days):
             print("observation:", obs, "action: ", learned_action, "rew: ", reward)
             break
-    #print("Diff En: ", round(energy_prod - energy_used, 5) , "Diff Volt: ", np.sqrt((2*abs(energy_prod - energy_used))/1.5))
+    print("Energy Prod: ", energy_prod_tot/(repeat*diff_days.days), "Energy Used: ", energy_used_tot/(repeat*diff_days.days) )
 
-print_start = "11/09/19 06:00:00"
-print_start = ""
-print_end = "11/10/19 18:00:00"
+print("Tot reward: ", tot_rew)
+print_start = "07/03/19 06:00:00"
+#print_start = ""
+print_end = "07/04/19 18:00:00"
+print("Tot events averaged per day: ", int(res["Tot_events"])/(repeat*diff_days.days))
+
 Env.render(1, tot_rew, print_start, print_end)

@@ -1,0 +1,19 @@
+[
+  {
+    "title": "Stairs Access. Events Detected: ",
+    "path_light_data": "/B3_2140_Stairs1F_Event_Battery_Adapted.txt",
+    "light_divider": "2.35",
+    "train/test": "",
+    "start_train": "06/23/19 00:00:00",
+    "end_train": "06/30/19 00:00:00",
+    "start_test": "06/23/19 00:00:00",
+    "end_test": "06/30/19 00:00:00",
+    "repeat": 3,
+    "start_print": "07/03/19 06:00:00",
+    "end_print": "07/04/19 18:00:00",
+    "agent_saved_folder": "PPO_SimplePible_0_lr=0.0001_2019-12-18_05-52-458hz93xtt",
+    "sc_volt_start_train": "rand",
+    "sc_volt_start_test": "3.5",
+    "timesteps_total": 100e6
+}
+]

@@ -8,7 +8,7 @@ import random
 #from training_pible import light_divider
 
 def Energy(SC_volt, light, action, next_wake_up_time, event):
-
+    #SC_volt_save = SC_volt
     next_wake_up_time_sec = next_wake_up_time * 60 # in seconds
 
     Energy_Rem = SC_volt * SC_volt * 0.5 * SC_size
@@ -48,6 +48,7 @@ def Energy(SC_volt, light, action, next_wake_up_time, event):
     if SC_volt < SC_volt_min:
         SC_volt = np.array([SC_volt_min])
 
+    #SC_volt = SC_volt_save
     #SC_volt = np.round(SC_volt, 4)
 
     return SC_volt, Energy_Prod, Energy_Used
@@ -80,11 +81,11 @@ def light_event_func(t_now, next_wake_up_time, count, len, light_prev, file_data
 def reward_func(action, event, SC_volt):
     reward = 0
     if action == 1 and event != 0:
-        reward = 0.1 #*event
+        reward = 0.01*event
     elif action == 0 and event != 0:
-        reward = -0.1 #*(event)
-    #elif action == 1 and event == 0:
-    #    reward = -0.1
+        reward = -0.01*(event)
+    elif action == 1 and event == 0:
+        reward = -0.001
 
     if SC_volt <= SC_volt_die:
         reward = -1 #-1

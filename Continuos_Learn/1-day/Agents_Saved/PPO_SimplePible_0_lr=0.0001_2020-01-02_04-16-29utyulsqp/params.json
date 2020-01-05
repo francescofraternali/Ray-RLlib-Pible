@@ -1,0 +1,15 @@
+{
+  "batch_mode": "complete_episodes",
+  "env": "<class '__main__.SimplePible'>",
+  "env_config": {
+    "end_train": "10/02/19 00:00:00",
+    "sc_volt_start_test": "3.5",
+    "sc_volt_start_train": "rand",
+    "start_train": "10/01/19 00:00:00",
+    "train/test": "train"
+  },
+  "lr": 0.0001,
+  "num_workers": 6,
+  "observation_filter": "MeanStdFilter",
+  "output": "/mnt/c/Users/Francesco/Dropbox/EH/RL/RL_MY/Ray-RLlib-Pible/AutoCPS/Continuos_Learn/Agents_Saved"
+}
