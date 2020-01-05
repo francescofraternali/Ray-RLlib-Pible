@@ -4,6 +4,7 @@
     "path_light_data": "/FF66_2150_Middle_Event_RL_Adapted.txt",
     "agent_saved_folder": "PPO_SimplePible_0_lr=0.0001_2019-12-17_03-52-13yc0h1mw_",
     "timesteps_total": 5e4,
+    "training_iterations": 300,
     "light_divider": "2",
     "train/test": "",
     "start_train": "10/01/19 00:00:00",

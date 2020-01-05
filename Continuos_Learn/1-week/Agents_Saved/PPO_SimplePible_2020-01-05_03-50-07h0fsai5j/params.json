@@ -1,0 +1,15 @@
+{
+  "batch_mode": "complete_episodes",
+  "env_config": {
+    "end_train": "12/02/19 00:00:00",
+    "resume": [
+      "/home/francesco/ray_results/PPO_SimplePible_2020-01-05_03-31-04ieci602c/checkpoint_530/checkpoint-530"
+    ],
+    "sc_volt_start_train": "rand",
+    "start_train": "10/01/19 00:00:00",
+    "train/test": "train"
+  },
+  "lr": 0.0001,
+  "num_workers": 7,
+  "observation_filter": "MeanStdFilter"
+}

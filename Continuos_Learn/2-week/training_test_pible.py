@@ -353,7 +353,7 @@ def PPO(config):
             #max = result["episode_reward_mean"]
             checkpoint = trainer.save()
             print("checkpoint saved at", checkpoint)
-            sleep(1)
+            #sleep(1)
 
 if __name__ == "__main__":
     ray.init()

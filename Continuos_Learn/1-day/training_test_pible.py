@@ -64,6 +64,7 @@ class SimplePible(gym.Env):
             end = config["end_test"]
             self.start_sc = config["sc_volt_start_test"]
 
+
         self.light_div = light_divider
 
         start_data_date = datetime.datetime.strptime(st, '%m/%d/%y %H:%M:%S')
@@ -87,7 +88,8 @@ class SimplePible(gym.Env):
         line = self.file_data[0].split('|')
         self.light = int(int(line[8])/light_divider)
         self.light_count = 0
-        self.death = 0
+        self.death_days = 0
+        self.death_min = 0
         self.days_repeat = 0
         #self.time = datetime.datetime.strptime('01/01/17 00:00:00', '%m/%d/%y %H:%M:%S')
         self.time = datetime.datetime.strptime(line[0], '%m/%d/%y %H:%M:%S')
@@ -115,33 +117,30 @@ class SimplePible(gym.Env):
 
     def reset(self):
         #print("reset")
-        if self.episode_count % 200 == 0:
+        if self.episode_count % 50 == 0:
             if  self.start_sc == "rand":
                 self.SC_rand = random.uniform(SC_volt_die, SC_volt_max)
             else:
                 self.SC_rand = float(self.start_sc)
+
             #print("reset SC", self.events_count)
             input_volt = []
             for i in range(0, num_volt_input):
                 input_volt.append(self.SC_rand)
             self.SC_volt = np.array(input_volt)
         self.episode_count += 1
+        self.death_days = 0
+        self.death_min = 0
 
         if self.light_len == self.light_count: # all the light available is over, reset light and time
            self.light_count = 0
-           self.death = 0
            self.days_repeat += 1
            #print("here", self.light_count)
            self.time = self.time.replace(hour=self.time_begin.hour, minute=self.time_begin.minute, second=self.time_begin.second)
            self.end = self.time + datetime.timedelta(hours=24)
-           #sleep(10)
 
             #self.file_data = Pible_func.randomize_light_time(self.file_data_orig)
-            #self.light_count = 0
-            #self.tot_events = 0
-            #self.events_detect = 0
 
-            #self.events = Pible_func.events() # Build events array
         self.week_end = Pible_func.calc_week(self.time)
         #self.hour = np.array([self.time.hour])
         #self.minute = np.array([self.time.minute])
@@ -176,7 +175,7 @@ class SimplePible(gym.Env):
         #sleep(1)
         self.light, self.light_count, event = Pible_func.light_event_func(self.time, self.time_next, self.light_count, self.light_len, self.light, self.file_data, self.days_repeat, self.diff_days, self.light_div)
         SC_temp, en_prod, en_used = Pible_func.Energy(SC_temp, self.light, PIR_on_off, self.next_wake_up_time, event)
-        reward, event_det, event_miss, self.death = Pible_func.reward_func(PIR_on_off, event, SC_temp, self.death)
+        reward, event_det, event_miss, self.death_days, self.death_min = Pible_func.reward_func(PIR_on_off, event, SC_temp, self.death_days, self.death_min, self.next_wake_up_time)
         self.light_ar[0] = self.light
         self.SC_volt[0] = SC_temp
 
@@ -205,7 +204,9 @@ class SimplePible(gym.Env):
         info["Energy_prod"] = en_prod
         info["Tot_events"] = self.tot_events
         info["events_detect"] = self.events_detect
-        info["Death"] = self.death
+        info["Death_days"] = self.death_days
+        info["Death_min"] = self.death_min
+        info["SC_volt"] = SC_temp
         return (self.hour, self.light_ar, self.SC_volt, self.week_end), reward, done, info
 
     def render(self, episode, tot_rew, start, end, title):
@@ -218,82 +219,10 @@ class SimplePible(gym.Env):
                 if start_pic_detail <= line and line <= end_pic_detail:
                     Time.append(self.Time[i]); Light.append(self.Light[i]); PIR_OnOff.append(self.PIR_OnOff[i]); State_Trans.append(self.State_Trans[i]); Reward.append(self.Reward[i]); SC_Volt.append(self.SC_Volt[i]); PIR_hist.append(self.PIR_hist[i]); PIR_det.append(self.event_det_hist[i]); PIR_miss.append(self.event_miss_hist[i])
             Pible_func.plot_hist(Time, Light, PIR_OnOff, State_Trans, Reward, self.Perf, SC_Volt, PIR_hist, PIR_det, PIR_miss, episode, tot_rew, self.events_detect, self.tot_events, title)
-            self.SC_Volt = []; self.Reward = []; self.PIR_hist = []; self.Perf = []; self.Time = []; self.Light = []; self.PIR_OnOff = []; self.State_Trans = []
-
         else:
             Pible_func.plot_hist(self.Time, self.Light, self.PIR_OnOff, self.State_Trans, self.Reward, self.Perf, self.SC_Volt, self.PIR_hist, self.event_det_hist, self.event_miss_hist, episode, tot_rew, self.events_detect, self.tot_events, title)
 
-def find_agent_saved():
-    Agnt = 'PPO'
-    # Detect latest folder for trainer to resume
-    latest = 0
-    path = subprocess.getoutput('eval echo "~$USER"')
-    proc = subprocess.Popen("ls " + path + "/ray_results/", stdout=subprocess.PIPE, shell=True)
-    (out, err) = proc.communicate()
-    out = out.decode()
-    spl = out.strip().split('\n')
-    for i in spl:
-        test = i.split('.')
-        #print(test)
-        if "json" not in test and len(test[0].split('_')) > 1:
-            d = i.split('_')
-            #print(d)
-            date = d[2].split('-')
-            hour = d[3].split('-')
-            x = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(hour[0]), int(hour[1]))
-            if latest == 0:
-                folder = i; time = x; latest = 1
-                folder_found = i
-            else:
-                if x >= time:
-                    folder = i; time = x
-                    # Checking for a better folder
-                    #if d[3] == "lr=0.0001":
-                    #if d[3] == "lr=1e-05":
-                    if 1:
-                        folder_found = i
-
-    #print("folder: ", folder_found)
-    folder = folder_found
-
-    # detect checkpoint to resume
-    proc = subprocess.Popen("ls " + path + "/ray_results/" + folder + '/', stdout=subprocess.PIPE, shell=True)
-    (out, err) = proc.communicate()
-    #print(out)
-    out = out.decode()
-    spl = out.strip().split('\n')
-    max = 0
-    for i in spl:
-        tester = i.split('_')
-        #print(tester, len(tester), tester[1].isdigit())
-        if "checkpoint" in tester and len(tester)==2 and tester[1].isdigit():
-            if int(tester[1]) > max:
-                max = int(tester[1])
-                iteration = i
-    iteration = max
-    print("\nFound folder: ", folder, "Last checkpoint found: ", iteration)
-
-    max_mean = - 10000
-    count = 0
-    for line in open(path + "/ray_results/" + folder + "/result.json", 'r'):
-        count += 1
-        dict = json.loads(line)
-        if dict['episode_reward_mean'] >= max_mean and count > 9:
-            max_mean = dict['episode_reward_mean']
-            #iteration = count
-            iteration = dict['training_iteration']
-        #data = json.loads(text)
-
-        #for p in data["episode_reward_mean"]:
-        #    print(p)
-    #print(iteration)
-    iter_str = str(iteration)
-    iteration = (int(iter_str[:-1])* 10)
-    print("Best checkpoint found:", iteration, ". Mean Reward Episode: ", max_mean)
-
-    return folder, iteration
-
-def check_perf_results(folder, iteration, start, end):
+def check_perf_results(folder, iteration, start, end, sc_volt_start_test):
     Agnt = "PPO"
     path = glob.glob(subprocess.getoutput('eval echo "~$USER"') + '/ray_results/' + folder  +
                          '/checkpoint_' + str(iteration) + '/checkpoint-' + str(iteration), recursive=True)
@@ -306,7 +235,7 @@ def check_perf_results(folder, iteration, start, end):
             "train/test": "test",
             "start_test": start,
             "end_test": end,
-            "sc_volt_start_test": '3.1',
+            "sc_volt_start_test": sc_volt_start_test,
             "num_workers": 0,  # parallelism
          },
     }, env=SimplePible)
@@ -316,7 +245,7 @@ def check_perf_results(folder, iteration, start, end):
             "train/test": "test",
             "start_test": start,
             "end_test": end,
-            "sc_volt_start_test": '3.1',
+            "sc_volt_start_test": sc_volt_start_test,
             "num_workers": 0,  # parallelism
         }
     diff_days = datetime.datetime.strptime(end, '%m/%d/%y %H:%M:%S') - datetime.datetime.strptime(start, '%m/%d/%y %H:%M:%S')
@@ -329,6 +258,8 @@ def check_perf_results(folder, iteration, start, end):
     tot_rew = 0
     repeat = 1
     stop = 0
+    death_days_tot = 0
+    death_min_tot = 0
     energy_used_tot = 0; energy_prod_tot = 0
     while True:
         action_0_list = []
@@ -362,6 +293,8 @@ def check_perf_results(folder, iteration, start, end):
         if done:
             obs = Env.reset()
             stop +=1
+            death_days_tot += int(res["Death_days"])
+            death_min_tot += int(res["Death_min"])
         if stop >= repeat*(diff_days.days):
             #print("observation:", obs, "action: ", learned_action, "rew: ", reward)
             break
@@ -371,7 +304,7 @@ def check_perf_results(folder, iteration, start, end):
     print_start = start
     print_end = end
     print("Tot events averaged per day: ", int(res["Tot_events"])/(repeat*diff_days.days))
-    print("System Death Tot times: ", int(res["Death"]))
+    print("System Death Days Tot times: ", death_days_tot, ". Minutes: ", death_min_tot)
     try:
         percent = round((((res["events_detect"]) /  int(res["Tot_events"])) * 100), 2)
     except:
@@ -381,43 +314,20 @@ def check_perf_results(folder, iteration, start, end):
 
     title_final = title + ('{0}%').format(percent)
     Env.render(1, tot_rew, print_start, print_end, title_final)
+    volt_diff = float(sc_volt_start_test) - float(res["SC_volt"])
+    sc_volt_start_test = float(res["SC_volt"])
     Pible_func.write_results(tot_rew, start, end, percent, diff_days.days,
         energy_prod_tot/(repeat*diff_days.days), energy_used_tot/(repeat*diff_days.days), res["events_detect"],
-        int(res["Tot_events"]), int(res["Death"]))
+        int(res["Tot_events"]), death_days_tot, death_min_tot, volt_diff)
     print("Percent detected: ", percent)
 
-    return path
-    #proc = subprocess.Popen("cp -r ", stdout=subprocess.PIPE, shell=True)
-'''
-def training(train_test, start_train, end_train, num_workers):
-    #ModelCatalog.register_custom_model("my_model", CustomModel)
-    trainer = tune.run(
-        "PPO",
-        stop={
-            "timesteps_total": data[0]["timesteps_total"],
-        },
-        checkpoint_freq=10,
-        config={
-            #"vf_clip_param": 10.0,
-            "observation_filter": 'MeanStdFilter',
-            "batch_mode": "complete_episodes",
-            "env": SimplePible,  # or "corridor" if registered above
-            #"vf_share_layers": True,
-            "lr": grid_search([1e-4]),  # try different lrs
-            "num_workers": num_workers,  # parallelism
-            "env_config": {
-                "train/test": train_test,
-                "start_train": start_train,
-                "end_train": end_train,
-                #"start_test": start_test,
-                #"end_test": end_test,
-                "sc_volt_start_train": 'rand',
-                "sc_volt_start_test": '3.5',
-            },
-        },
-    )
 
-'''
+    #print(sc_volt_start_test)
+    #sleep(5)
+
+    return path, sc_volt_start_test
+    #proc = subprocess.Popen("cp -r ", stdout=subprocess.PIPE, shell=True)
+
 def PPO(config):
     max = -1000
     resume = config["env_config"]["resume"]
@@ -425,13 +335,13 @@ def PPO(config):
     trainer = ppo.PPOTrainer(config=config, env=SimplePible)
     if resume != "":
         print("Restoring checkpoint: ", resume[0])
-        sleep(2)
+        sleep(5)
         trainer.restore(resume[0])
 
     # Can optionally call trainer.restore(path) to load a checkpoint.
 
     #for i in range(0, int(data[0]["timesteps_total"])):
-    for i in range(0, 200):
+    for i in range(0, int(data[0]["training_iterations"])):
         # Perform one iteration of training the policy with PPO
         result = trainer.train()
         print(pretty_print(result))
@@ -443,11 +353,11 @@ def PPO(config):
             #max = result["episode_reward_mean"]
             checkpoint = trainer.save()
             print("checkpoint saved at", checkpoint)
-            sleep(1)
+            #sleep(1)
 
 if __name__ == "__main__":
     ray.init()
-
+    sc_volt_start_test = data[0]["sc_volt_start_test"]
     # Can also register the env creator function explicitly with:
     # register_env("corridor", lambda config: SimpleCorridor(config))
     proc = subprocess.Popen("nproc", stdout=subprocess.PIPE, shell=True)
@@ -470,13 +380,13 @@ if __name__ == "__main__":
 
     while True:
         print("train", start_train, end_train_temp)
-        #sleep(10)
+        sleep(10)
         #training("train", start_train, end_train_temp, int(spl[0])-2)
         config={
             "observation_filter": 'MeanStdFilter',
             "batch_mode": "complete_episodes",
             "lr" : grid_search([1e-4]),
-            "num_workers": int(spl[0])-2,  # parallelism
+            "num_workers": int(spl[0])-1,  # parallelism
             "env_config": {
                 "train/test": "train",
                 "start_train": start_train,
@@ -493,13 +403,12 @@ if __name__ == "__main__":
         end_test = end_test_date.strftime("%m/%d/%y %H:%M:%S")
 
         # Resume folder and best checkpoint
-        folder, iteration = find_agent_saved()
+        folder, iteration = Pible_func.find_agent_saved()
         agent_save = curr_path + "/Agents_Saved"
         proc = subprocess.Popen("cp -r /home/francesco/ray_results/" + folder + " " + agent_save, stdout=subprocess.PIPE, shell=True)
         print("test", start_test, end_test)
         sleep(10)
-        resume = check_perf_results(folder, iteration, start_test, end_test)
-
+        resume, sc_volt_start_test = check_perf_results(folder, iteration, start_test, end_test, sc_volt_start_test)
         end_train_temp = end_test
 
         if end_test_date >= end_train_date:

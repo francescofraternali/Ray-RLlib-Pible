@@ -81,7 +81,7 @@ def light_event_func(t_now, next_wake_up_time, count, len, light_prev, file_data
                 count += 1
         return light, count, event
 
-def reward_func(action, event, SC_volt, death):
+def reward_func(action, event, SC_volt, death_days, death_min, next_wake_up):
     reward = 0; detect = 0
     miss = np.nan
     if action == 1 and event != 0:
@@ -95,11 +95,12 @@ def reward_func(action, event, SC_volt, death):
 
     if SC_volt <= SC_volt_die:
         reward = -1 #-1
-        death += 1
-        if death >= 1:
-            death = 1
+        death_days +=1
+        death_min += next_wake_up
+        if death_days >= 1:
+            death_days = 1
 
-    return reward, detect, miss, death
+    return reward, detect, miss, death_days, death_min
 
 def randomize_light_time(input_data_raw):
     input_data = []
@@ -212,11 +213,82 @@ def plot_hist(Time, Light, PIR_OnOff, State_Trans, Reward, Perf, SC_Volt, PIR, P
     plt.grid(True)
     plt.savefig('Save_Data/Graph_' + str(Time[0].date()) + '.png', bbox_inches='tight')
     #plt.show()
+    plt.close
 
-def write_results(tot_rew, start, end, percent, diff_days, energy_prod_tot_avg, energy_used_tot_avg, events_detect, Tot_events, death):
+def write_results(tot_rew, start, end, percent, diff_days, energy_prod_tot_avg, energy_used_tot_avg, events_detect, Tot_events, death_days, death_min, volt_diff):
     import json
-    dict = {"tot_rew": tot_rew, "start_date": start, "end_date": end, "percent": percent, "num_days": diff_days, "energy_prod_tot_avg": energy_prod_tot_avg, "energy_used_tot_avg": energy_used_tot_avg, "events_detect": events_detect, "Tot_events": Tot_events, "Death_times": str(death)}
+    dict = {"tot_rew": tot_rew, "start_date": start, "end_date": end, "percent": percent, "num_days": diff_days, "energy_prod_tot_avg": energy_prod_tot_avg, "energy_used_tot_avg": energy_used_tot_avg, "events_detect": events_detect, "Tot_events": Tot_events, "Death_days": str(death_days), "Death_min": str(death_min), "Volt_diff": str(volt_diff)}
     json = json.dumps(dict)
     with open("results.json","a") as f:
         f.write(json)
         f.write('\n')
+
+def find_agent_saved():
+    Agnt = 'PPO'
+    # Detect latest folder for trainer to resume
+    latest = 0
+    path = subprocess.getoutput('eval echo "~$USER"')
+    proc = subprocess.Popen("ls " + path + "/ray_results/", stdout=subprocess.PIPE, shell=True)
+    (out, err) = proc.communicate()
+    out = out.decode()
+    spl = out.strip().split('\n')
+    for i in spl:
+        test = i.split('.')
+        #print(test)
+        if "json" not in test and len(test[0].split('_')) > 1:
+            d = i.split('_')
+            #print(d)
+            date = d[2].split('-')
+            hour = d[3].split('-')
+            x = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(hour[0]), int(hour[1]))
+            if latest == 0:
+                folder = i; time = x; latest = 1
+                folder_found = i
+            else:
+                if x >= time:
+                    folder = i; time = x
+                    # Checking for a better folder
+                    #if d[3] == "lr=0.0001":
+                    #if d[3] == "lr=1e-05":
+                    if 1:
+                        folder_found = i
+
+    #print("folder: ", folder_found)
+    folder = folder_found
+
+    # detect checkpoint to resume
+    proc = subprocess.Popen("ls " + path + "/ray_results/" + folder + '/', stdout=subprocess.PIPE, shell=True)
+    (out, err) = proc.communicate()
+    #print(out)
+    out = out.decode()
+    spl = out.strip().split('\n')
+    max = 0
+    for i in spl:
+        tester = i.split('_')
+        #print(tester, len(tester), tester[1].isdigit())
+        if "checkpoint" in tester and len(tester)==2 and tester[1].isdigit():
+            if int(tester[1]) > max:
+                max = int(tester[1])
+                iteration = i
+    iteration = max
+    print("\nFound folder: ", folder, "Last checkpoint found: ", iteration)
+
+    max_mean = - 10000
+    count = 0
+    for line in open(path + "/ray_results/" + folder + "/result.json", 'r'):
+        count += 1
+        dict = json.loads(line)
+        if dict['episode_reward_mean'] >= max_mean and count > 9:
+            max_mean = dict['episode_reward_mean']
+            #iteration = count
+            iteration = dict['training_iteration']
+        #data = json.loads(text)
+
+        #for p in data["episode_reward_mean"]:
+        #    print(p)
+    #print(iteration)
+    iter_str = str(iteration)
+    iteration = (int(iter_str[:-1])* 10)
+    print("Best checkpoint found:", iteration, ". Mean Reward Episode: ", max_mean)
+
+    return folder, iteration
